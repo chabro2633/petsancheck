@@ -95,37 +95,55 @@ struct WalkMapView: UIViewRepresentable {
                     return false;
                 };
             </script>
-            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)"></script>
+            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&autoload=false"></script>
             <script>
-                console.log('Kakao Maps SDK script loaded');
+                console.log('Kakao Maps SDK script tag loaded');
 
                 var map;
                 var polyline;
                 var currentLocationMarker;
 
-                try {
-                    console.log('Creating walk map...');
-                    var mapContainer = document.getElementById('map');
-                    var mapOption = {
-                        center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
-                        level: 3
-                    };
+                // SDK 초기화 대기
+                if (window.kakao && window.kakao.maps) {
+                    console.log('kakao.maps already available, loading...');
+                    kakao.maps.load(initializeMap);
+                } else {
+                    console.log('Waiting for kakao.maps to load...');
+                    // SDK 로딩 재시도
+                    var checkKakao = setInterval(function() {
+                        if (window.kakao && window.kakao.maps) {
+                            clearInterval(checkKakao);
+                            console.log('kakao.maps now available, loading...');
+                            kakao.maps.load(initializeMap);
+                        }
+                    }, 100);
+                }
 
-                    map = new kakao.maps.Map(mapContainer, mapOption);
-                    console.log('Walk map created successfully');
+                function initializeMap() {
+                    try {
+                        console.log('Creating walk map...');
+                        var mapContainer = document.getElementById('map');
+                        var mapOption = {
+                            center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
+                            level: 3
+                        };
 
-                    // 초기 폴리라인 생성
-                    polyline = new kakao.maps.Polyline({
-                        path: [],
-                        strokeWeight: 5,
-                        strokeColor: '#0066FF',
-                        strokeOpacity: 0.8,
-                        strokeStyle: 'solid'
-                    });
-                    polyline.setMap(map);
-                    console.log('Polyline created');
-                } catch (e) {
-                    console.log('Error creating walk map: ' + e.message);
+                        map = new kakao.maps.Map(mapContainer, mapOption);
+                        console.log('Walk map created successfully');
+
+                        // 초기 폴리라인 생성
+                        polyline = new kakao.maps.Polyline({
+                            path: [],
+                            strokeWeight: 5,
+                            strokeColor: '#0066FF',
+                            strokeOpacity: 0.8,
+                            strokeStyle: 'solid'
+                        });
+                        polyline.setMap(map);
+                        console.log('Polyline created');
+                    } catch (e) {
+                        console.log('Error creating walk map: ' + e.message);
+                    }
                 }
 
                 // 경로 업데이트

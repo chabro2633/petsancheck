@@ -92,26 +92,44 @@ struct KakaoMapView: UIViewRepresentable {
                     return false;
                 };
             </script>
-            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)"></script>
+            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&autoload=false"></script>
             <script>
-                console.log('Kakao Maps SDK script loaded');
+                console.log('Kakao Maps SDK script tag loaded');
 
                 var map;
                 var markers = [];
                 var currentMarker;
 
-                try {
-                    console.log('Creating map...');
-                    var mapContainer = document.getElementById('map');
-                    var mapOption = {
-                        center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
-                        level: 5
-                    };
+                // SDK 초기화 대기
+                if (window.kakao && window.kakao.maps) {
+                    console.log('kakao.maps already available, loading...');
+                    kakao.maps.load(initializeMap);
+                } else {
+                    console.log('Waiting for kakao.maps to load...');
+                    // SDK 로딩 재시도
+                    var checkKakao = setInterval(function() {
+                        if (window.kakao && window.kakao.maps) {
+                            clearInterval(checkKakao);
+                            console.log('kakao.maps now available, loading...');
+                            kakao.maps.load(initializeMap);
+                        }
+                    }, 100);
+                }
 
-                    map = new kakao.maps.Map(mapContainer, mapOption);
-                    console.log('Map created successfully');
-                } catch (e) {
-                    console.log('Error creating map: ' + e.message);
+                function initializeMap() {
+                    try {
+                        console.log('Creating map...');
+                        var mapContainer = document.getElementById('map');
+                        var mapOption = {
+                            center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
+                            level: 5
+                        };
+
+                        map = new kakao.maps.Map(mapContainer, mapOption);
+                        console.log('Map created successfully');
+                    } catch (e) {
+                        console.log('Error creating map: ' + e.message);
+                    }
                 }
 
                 function clearMarkers() {
