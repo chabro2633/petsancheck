@@ -7,57 +7,65 @@
 
 import SwiftUI
 import MapKit
+import CoreLocation
 
 /// 병원 검색 화면
 struct HospitalView: View {
     @StateObject private var viewModel = HospitalViewModel()
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-    )
+    @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showingSearchOptions = false
+
+    // 카카오맵 API 키
+    private let kakaoMapAPIKey = "9e8b18c55ec9d4441317124e6ecf84b6"
 
     var body: some View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
-                    // 지도
-                    Map(coordinateRegion: $region, showsUserLocation: true)
-                        .frame(height: 250)
-                        .overlay(alignment: .topTrailing) {
-                            VStack(spacing: 12) {
-                                // 내 위치로 이동 버튼
-                                Button(action: {
-                                    if let coordinate = viewModel.currentCoordinate {
-                                        withAnimation {
-                                            region.center = coordinate
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: "location.fill")
-                                        .padding(12)
-                                        .background(Color.blue)
-                                        .foregroundColor(.white)
-                                        .clipShape(Circle())
-                                        .shadow(radius: 4)
-                                }
-
-                                // 근처 병원 검색 버튼
-                                Button(action: {
-                                    Task {
-                                        await viewModel.searchNearbyHospitals()
-                                    }
-                                }) {
-                                    Image(systemName: "magnifyingglass")
-                                        .padding(12)
-                                        .background(Color.white)
-                                        .foregroundColor(.blue)
-                                        .clipShape(Circle())
-                                        .shadow(radius: 4)
-                                }
-                            }
-                            .padding()
+                    // 카카오맵
+                    KakaoMapView(
+                        apiKey: kakaoMapAPIKey,
+                        centerCoordinate: $centerCoordinate,
+                        hospitals: viewModel.hospitals,
+                        onMarkerTap: { hospital in
+                            viewModel.selectedHospital = hospital
                         }
+                    )
+                    .frame(height: 250)
+                    .overlay(alignment: .topTrailing) {
+                        VStack(spacing: 12) {
+                            // 내 위치로 이동 버튼
+                            Button(action: {
+                                if let coordinate = viewModel.currentCoordinate {
+                                    withAnimation {
+                                        centerCoordinate = coordinate
+                                    }
+                                }
+                            }) {
+                                Image(systemName: "location.fill")
+                                    .padding(12)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+
+                            // 근처 병원 검색 버튼
+                            Button(action: {
+                                Task {
+                                    await viewModel.searchNearbyHospitals()
+                                }
+                            }) {
+                                Image(systemName: "magnifyingglass")
+                                    .padding(12)
+                                    .background(Color.white)
+                                    .foregroundColor(.blue)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+                        }
+                        .padding()
+                    }
 
                     // 병원 목록
                     if viewModel.isLoading {
@@ -90,7 +98,7 @@ struct HospitalView: View {
                                 HospitalRow(hospital: hospital)
                                     .onTapGesture {
                                         viewModel.selectedHospital = hospital
-                                        region.center = hospital.coordinate
+                                        centerCoordinate = hospital.coordinate
                                     }
                             }
                         }
