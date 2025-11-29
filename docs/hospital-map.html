@@ -12,7 +12,6 @@
 </head>
 <body>
     <div id="map"></div>
-    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=9e8b18c55ec9d4441317124e6ecf84b6"></script>
     <script>
         var originalLog = console.log;
 
@@ -33,24 +32,42 @@
         var initLat = parseFloat(urlParams.get('lat')) || 37.5665;
         var initLng = parseFloat(urlParams.get('lng')) || 126.9780;
 
-        // 지도 초기화
-        window.addEventListener('load', function() {
-            console.log('Window loaded, initializing map...');
+        // 카카오맵 SDK 동적 로딩
+        console.log('Loading Kakao Maps SDK...');
 
-            var mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                console.log('Map container not found!');
-                return;
-            }
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=9e8b18c55ec9d4441317124e6ecf84b6&autoload=false';
 
-            var mapOption = {
-                center: new kakao.maps.LatLng(initLat, initLng),
-                level: 5
-            };
+        script.onload = function() {
+            console.log('SDK script loaded successfully');
 
-            map = new kakao.maps.Map(mapContainer, mapOption);
-            console.log('Hospital map initialized');
-        });
+            // SDK 로드 후 지도 초기화
+            kakao.maps.load(function() {
+                console.log('Kakao Maps API ready, initializing map...');
+
+                var mapContainer = document.getElementById('map');
+                if (!mapContainer) {
+                    console.log('Map container not found!');
+                    return;
+                }
+
+                var mapOption = {
+                    center: new kakao.maps.LatLng(initLat, initLng),
+                    level: 5
+                };
+
+                map = new kakao.maps.Map(mapContainer, mapOption);
+                console.log('Hospital map initialized successfully');
+            });
+        };
+
+        script.onerror = function() {
+            console.log('Failed to load Kakao Maps SDK!');
+            document.getElementById('map').innerHTML = '<div style="padding:20px;text-align:center;">지도를 불러올 수 없습니다.</div>';
+        };
+
+        document.head.appendChild(script);
 
         // 네이티브에서 호출할 함수들
         function setCenter(lat, lng) {
