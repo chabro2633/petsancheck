@@ -34,8 +34,6 @@ struct WalkView: View {
                             withAnimation {
                                 centerCoordinate = coordinate
                             }
-                        } else {
-                            viewModel.requestLocation()
                         }
                     }) {
                         Image(systemName: "location.fill")
