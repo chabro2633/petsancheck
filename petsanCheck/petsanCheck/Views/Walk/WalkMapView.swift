@@ -15,7 +15,7 @@ struct WalkMapView: UIViewRepresentable {
     let routeCoordinates: [CLLocationCoordinate2D]
 
     // GitHub Pages URL
-    private let mapURL = "https://chahyeongtae.github.io/petsancheck/walk-map.html"
+    private let mapURL = "https://chabro2633.github.io/petsancheck/walk-map.html"
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()

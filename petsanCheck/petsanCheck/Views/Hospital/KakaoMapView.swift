@@ -16,7 +16,7 @@ struct KakaoMapView: UIViewRepresentable {
     let onMarkerTap: ((Hospital) -> Void)?
 
     // GitHub Pages URL
-    private let mapURL = "https://chahyeongtae.github.io/petsancheck/hospital-map.html"
+    private let mapURL = "https://chabro2633.github.io/petsancheck/hospital-map.html"
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
