@@ -96,46 +96,37 @@ struct KakaoMapView: UIViewRepresentable {
                     return false;
                 };
             </script>
-            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&libraries=services"></script>
             <script>
                 var map;
                 var markers = [];
                 var currentMarker;
 
-                // 페이지 로드 완료 대기
-                window.addEventListener('load', function() {
-                    console.log('Page loaded, initializing map...');
+                function initializeMap() {
+                    try {
+                        console.log('Initializing hospital map...');
+                        var mapContainer = document.getElementById('map');
 
-                    // kakao 객체가 준비될 때까지 대기
-                    var initAttempts = 0;
-                    var maxAttempts = 50; // 5초 최대 대기
-
-                    var checkAndInit = setInterval(function() {
-                        initAttempts++;
-
-                        if (typeof kakao !== 'undefined' && kakao.maps) {
-                            clearInterval(checkAndInit);
-                            console.log('Kakao Maps SDK ready, creating map...');
-
-                            try {
-                                var mapContainer = document.getElementById('map');
-                                var mapOption = {
-                                    center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
-                                    level: 5
-                                };
-
-                                map = new kakao.maps.Map(mapContainer, mapOption);
-                                console.log('Map created successfully');
-                            } catch (e) {
-                                console.log('Error creating map: ' + e.message);
-                            }
-                        } else if (initAttempts >= maxAttempts) {
-                            clearInterval(checkAndInit);
-                            console.log('Failed to load Kakao Maps SDK after ' + maxAttempts + ' attempts');
+                        if (!mapContainer) {
+                            console.log('Map container not found');
+                            return;
                         }
-                    }, 100);
-                });
+
+                        var mapOption = {
+                            center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
+                            level: 5
+                        };
+
+                        map = new kakao.maps.Map(mapContainer, mapOption);
+                        console.log('Hospital map created successfully');
+                    } catch (e) {
+                        console.log('Error creating map: ' + e.message);
+                    }
+                }
             </script>
+            <script type="text/javascript"
+                    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&libraries=services&autoload=false"
+                    onload="console.log('SDK script loaded'); kakao.maps.load(initializeMap);"
+                    onerror="console.log('Failed to load SDK script');"></script>
 
                 function clearMarkers() {
                     if (!map) {
