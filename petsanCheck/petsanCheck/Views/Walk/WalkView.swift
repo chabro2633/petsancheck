@@ -27,6 +27,26 @@ struct WalkView: View {
                     }
                 )
                 .ignoresSafeArea()
+                .overlay(alignment: .topTrailing) {
+                    // 내 위치로 이동 버튼
+                    Button(action: {
+                        if let coordinate = viewModel.currentLocation?.coordinate {
+                            withAnimation {
+                                centerCoordinate = coordinate
+                            }
+                        } else {
+                            viewModel.requestLocation()
+                        }
+                    }) {
+                        Image(systemName: "location.fill")
+                            .padding(12)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    .padding()
+                }
 
                 VStack {
                     // 상단 컴팩트 정보 영역
