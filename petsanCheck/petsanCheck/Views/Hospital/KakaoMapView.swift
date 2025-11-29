@@ -37,9 +37,13 @@ struct KakaoMapView: UIViewRepresentable {
             webView.isInspectable = true
         }
 
-        // HTML 로드
+        // HTML 로드 (baseURL 설정으로 외부 스크립트 로딩 허용)
         let html = generateHTML()
-        webView.loadHTMLString(html, baseURL: nil)
+        if let baseURL = URL(string: "https://dapi.kakao.com") {
+            webView.loadHTMLString(html, baseURL: baseURL)
+        } else {
+            webView.loadHTMLString(html, baseURL: nil)
+        }
 
         return webView
     }
