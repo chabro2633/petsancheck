@@ -19,11 +19,15 @@ class WalkViewModel: ObservableObject {
     private let locationManager: LocationManager
     private var cancellables = Set<AnyCancellable>()
 
-    init(locationManager: LocationManager = LocationManager()) {
+    init(locationManager: LocationManager) {
         self.locationManager = locationManager
 
         // LocationManager의 변경사항 구독
         setupBindings()
+    }
+
+    convenience init() {
+        self.init(locationManager: LocationManager())
     }
 
     private func setupBindings() {
