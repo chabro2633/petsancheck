@@ -34,11 +34,9 @@ struct WalkRecordDetailView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // 지도
-                Map(coordinateRegion: $region, annotationItems: record.locations) { location in
-                    MapMarker(coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude), tint: .blue)
-                }
-                .frame(height: 300)
-                .cornerRadius(12)
+                Map(coordinateRegion: $region, showsUserLocation: false)
+                    .frame(height: 300)
+                    .cornerRadius(12)
 
                 // 통계 정보
                 VStack(spacing: 16) {

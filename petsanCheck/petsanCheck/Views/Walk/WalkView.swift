@@ -23,10 +23,8 @@ struct WalkView: View {
         NavigationStack {
             ZStack {
                 // 지도
-                Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: viewModel.routeLocations) { location in
-                    MapMarker(coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude), tint: .blue)
-                }
-                .ignoresSafeArea()
+                Map(coordinateRegion: $region, showsUserLocation: true)
+                    .ignoresSafeArea()
 
                 VStack {
                     // 선택된 반려견 정보
