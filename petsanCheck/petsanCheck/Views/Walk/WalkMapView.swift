@@ -100,6 +100,8 @@ struct WalkMapView: UIViewRepresentable {
                 };
             </script>
             <script>
+                console.log('Starting dynamic SDK load...');
+
                 var map;
                 var polyline;
                 var currentLocationMarker;
@@ -136,11 +138,30 @@ struct WalkMapView: UIViewRepresentable {
                         console.log('Error creating walk map: ' + e.message);
                     }
                 }
+
+                // 동적으로 SDK 스크립트 로드
+                (function() {
+                    var script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&autoload=false';
+
+                    script.onload = function() {
+                        console.log('SDK script loaded successfully');
+                        if (typeof kakao !== 'undefined' && kakao.maps) {
+                            kakao.maps.load(initializeWalkMap);
+                        } else {
+                            console.log('kakao object not available after script load');
+                        }
+                    };
+
+                    script.onerror = function() {
+                        console.log('Failed to load SDK script');
+                    };
+
+                    document.head.appendChild(script);
+                    console.log('SDK script tag appended to head');
+                })();
             </script>
-            <script type="text/javascript"
-                    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&libraries=services&autoload=false"
-                    onload="console.log('SDK script loaded'); kakao.maps.load(initializeWalkMap);"
-                    onerror="console.log('Failed to load SDK script');"></script>
 
                 // 경로 업데이트
                 function updateRoute(coordinates) {

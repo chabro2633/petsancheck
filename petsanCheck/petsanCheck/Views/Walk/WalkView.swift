@@ -33,19 +33,25 @@ struct WalkView: View {
                 .ignoresSafeArea()
 
                 VStack {
-                    // 선택된 반려견 정보
-                    if viewModel.isTracking, let dog = selectedDog {
-                        DogInfoBanner(dog: dog)
-                            .padding(.top)
+                    // 상단 컴팩트 정보 영역
+                    VStack(spacing: 0) {
+                        // 선택된 반려견 정보
+                        if viewModel.isTracking, let dog = selectedDog {
+                            DogInfoBanner(dog: dog)
+                        }
+
+                        // 통계 카드 (컴팩트 버전)
+                        if viewModel.isTracking {
+                            CompactWalkStatsCard(stats: viewModel.currentStats)
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                        }
                     }
+                    .background(Color(.systemBackground).opacity(0.95))
+                    .cornerRadius(16, corners: [.bottomLeft, .bottomRight])
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
 
                     Spacer()
-
-                    // 통계 카드
-                    if viewModel.isTracking {
-                        WalkStatsCard(stats: viewModel.currentStats)
-                            .padding()
-                    }
 
                     // 컨트롤 버튼
                     WalkControlButtons(
@@ -190,6 +196,42 @@ struct WalkStatsCard: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+    }
+}
+
+// MARK: - 컴팩트 통계 카드
+struct CompactWalkStatsCard: View {
+    let stats: WalkStats
+
+    var body: some View {
+        HStack(spacing: 12) {
+            CompactStatItem(icon: "map.fill", value: stats.distanceText)
+            Divider().frame(height: 20)
+            CompactStatItem(icon: "clock.fill", value: stats.durationText)
+            Divider().frame(height: 20)
+            CompactStatItem(icon: "speedometer", value: stats.speedText)
+            Divider().frame(height: 20)
+            CompactStatItem(icon: "flame.fill", value: stats.caloriesText)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+}
+
+struct CompactStatItem: View {
+    let icon: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(.blue)
+            Text(value)
+                .font(.caption)
+                .fontWeight(.semibold)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
