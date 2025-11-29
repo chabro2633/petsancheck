@@ -14,9 +14,8 @@ class WeatherService {
 
     private init() {}
 
-    // TODO: 본인의 OpenWeatherMap API 키로 변경하세요
-    // https://openweathermap.org/api 에서 무료 API 키를 발급받을 수 있습니다
-    private let apiKey = "YOUR_API_KEY_HERE"
+    // OpenWeatherMap API 키
+    private let apiKey = "c3012ebad93d932ad3887a019d1ce4b3"
     private let baseURL = "https://api.openweathermap.org/data/2.5/weather"
 
     /// 현재 위치의 날씨 정보 가져오기
