@@ -25,16 +25,36 @@ struct HospitalView: View {
                     Map(coordinateRegion: $region, showsUserLocation: true)
                         .frame(height: 250)
                         .overlay(alignment: .topTrailing) {
-                            Button(action: {
-                                Task {
-                                    await viewModel.searchNearbyHospitals()
+                            VStack(spacing: 12) {
+                                // 내 위치로 이동 버튼
+                                Button(action: {
+                                    if let coordinate = viewModel.currentCoordinate {
+                                        withAnimation {
+                                            region.center = coordinate
+                                        }
+                                    }
+                                }) {
+                                    Image(systemName: "location.fill")
+                                        .padding(12)
+                                        .background(Color.blue)
+                                        .foregroundColor(.white)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 4)
                                 }
-                            }) {
-                                Image(systemName: "location.fill")
-                                    .padding(12)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 4)
+
+                                // 근처 병원 검색 버튼
+                                Button(action: {
+                                    Task {
+                                        await viewModel.searchNearbyHospitals()
+                                    }
+                                }) {
+                                    Image(systemName: "magnifyingglass")
+                                        .padding(12)
+                                        .background(Color.white)
+                                        .foregroundColor(.blue)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 4)
+                                }
                             }
                             .padding()
                         }

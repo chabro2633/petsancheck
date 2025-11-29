@@ -25,6 +25,11 @@ class HospitalViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var currentLocation: CLLocation?
 
+    /// 현재 위치 좌표
+    var currentCoordinate: CLLocationCoordinate2D? {
+        currentLocation?.coordinate
+    }
+
     enum SearchMode {
         case nearby // 현재 위치 근처
         case region // 지역명 검색
