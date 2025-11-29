@@ -9,18 +9,33 @@ import SwiftUI
 
 /// 홈 화면
 struct HomeView: View {
-    @State private var weatherInfo: WeatherInfo = .preview
-    @State private var walkRecommendation: WalkRecommendation?
+    @StateObject private var viewModel = HomeViewModel()
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     // 날씨 카드
-                    WeatherCardView(weather: weatherInfo)
+                    WeatherCardView(weather: viewModel.weatherInfo)
+
+                    // 로딩 인디케이터
+                    if viewModel.isLoadingWeather {
+                        ProgressView("날씨 정보 로딩 중...")
+                            .padding()
+                    }
+
+                    // 에러 메시지
+                    if let error = viewModel.weatherError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                    }
 
                     // 산책 추천 카드
-                    if let recommendation = walkRecommendation {
+                    if let recommendation = viewModel.walkRecommendation {
                         WalkRecommendationCardView(recommendation: recommendation)
                     }
 
@@ -31,13 +46,12 @@ struct HomeView: View {
             }
             .navigationTitle("펫산책")
             .onAppear {
-                evaluateWalkConditions()
+                viewModel.loadCurrentLocationWeather()
+            }
+            .refreshable {
+                viewModel.loadCurrentLocationWeather()
             }
         }
-    }
-
-    private func evaluateWalkConditions() {
-        walkRecommendation = WeatherEvaluator.evaluateWalkConditions(weather: weatherInfo)
     }
 }
 
