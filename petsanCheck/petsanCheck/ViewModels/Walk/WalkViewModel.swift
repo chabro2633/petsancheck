@@ -75,7 +75,7 @@ class WalkViewModel: ObservableObject {
     }
 
     /// 산책 종료
-    func stopWalk() {
+    func stopWalk(dogId: UUID? = nil) {
         guard var session = currentSession else { return }
 
         // 종료 시간 설정
@@ -85,7 +85,11 @@ class WalkViewModel: ObservableObject {
         // 위치 추적 중지
         locationManager.stopTracking()
 
-        // TODO: 세션을 CoreData에 저장
+        // 세션을 CoreData에 저장
+        CoreDataService.shared.createWalkRecord(session, dogId: dogId)
+
+        // 세션 초기화
+        currentSession = nil
     }
 
     /// 산책 일시정지

@@ -183,64 +183,61 @@ struct QuickActionsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
-                QuickActionButton(
-                    icon: "figure.walk",
-                    title: "산책 시작",
-                    color: .blue
-                ) {
-                    // 산책 시작 액션
+                NavigationLink(destination: WalkView()) {
+                    QuickActionCard(
+                        icon: "figure.walk",
+                        title: "산책 시작",
+                        color: .blue
+                    )
                 }
 
-                QuickActionButton(
-                    icon: "cross.fill",
-                    title: "병원 찾기",
-                    color: .red
-                ) {
-                    // 병원 찾기 액션
+                NavigationLink(destination: HospitalView()) {
+                    QuickActionCard(
+                        icon: "cross.fill",
+                        title: "병원 찾기",
+                        color: .red
+                    )
                 }
             }
 
             HStack(spacing: 12) {
-                QuickActionButton(
-                    icon: "chart.bar.fill",
-                    title: "산책 기록",
-                    color: .green
-                ) {
-                    // 기록 보기 액션
+                NavigationLink(destination: WalkHistoryView()) {
+                    QuickActionCard(
+                        icon: "chart.bar.fill",
+                        title: "산책 기록",
+                        color: .green
+                    )
                 }
 
-                QuickActionButton(
-                    icon: "photo.fill",
-                    title: "사진 공유",
-                    color: .purple
-                ) {
-                    // 사진 공유 액션
+                NavigationLink(destination: FeedView()) {
+                    QuickActionCard(
+                        icon: "photo.fill",
+                        title: "사진 공유",
+                        color: .purple
+                    )
                 }
             }
         }
     }
 }
 
-struct QuickActionButton: View {
+struct QuickActionCard: View {
     let icon: String
     let title: String
     let color: Color
-    let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                Text(title)
-                    .font(.caption)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(color.opacity(0.1))
-            .foregroundColor(color)
-            .cornerRadius(12)
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+            Text(title)
+                .font(.caption)
         }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(color.opacity(0.1))
+        .foregroundColor(color)
+        .cornerRadius(12)
     }
 }
 

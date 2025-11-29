@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="25.1.0" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="DogEntity" representedClassName="DogEntity" syncable="YES">
+        <attribute name="birthDate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="breed" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="gender" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="profileImageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="weight" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="walkRecords" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="WalkRecordEntity" inverseName="dog" inverseEntity="WalkRecordEntity"/>
+    </entity>
+    <entity name="WalkRecordEntity" representedClassName="WalkRecordEntity" syncable="YES">
+        <attribute name="averageSpeed" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="calories" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="locationsData" optional="YES" attributeType="Binary"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="startTime" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalDistance" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="weatherData" optional="YES" attributeType="Binary"/>
+        <relationship name="dog" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DogEntity" inverseName="walkRecords" inverseEntity="DogEntity"/>
+    </entity>
+</model>
