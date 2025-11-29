@@ -37,14 +37,16 @@ struct WalkHistoryView: View {
                         .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.walkRecords) { record in
-                            WalkRecordRow(record: record)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        viewModel.deleteRecord(record)
-                                    } label: {
-                                        Label("삭제", systemImage: "trash")
-                                    }
+                            NavigationLink(destination: WalkRecordDetailView(record: record)) {
+                                WalkRecordRow(record: record)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    viewModel.deleteRecord(record)
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
                                 }
+                            }
                         }
                     }
                 }

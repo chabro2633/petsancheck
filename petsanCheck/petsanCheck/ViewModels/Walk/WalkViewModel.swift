@@ -19,6 +19,11 @@ class WalkViewModel: ObservableObject {
     private let locationManager: LocationManager
     private var cancellables = Set<AnyCancellable>()
 
+    /// 산책 경로 위치들
+    var routeLocations: [WalkLocation] {
+        currentSession?.locations ?? []
+    }
+
     init(locationManager: LocationManager) {
         self.locationManager = locationManager
 
