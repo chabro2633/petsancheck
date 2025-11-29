@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 /// 산책 기록 조회 ViewModel
 @MainActor
