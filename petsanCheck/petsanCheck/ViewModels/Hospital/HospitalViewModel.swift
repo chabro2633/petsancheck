@@ -8,6 +8,7 @@
 import Foundation
 import CoreLocation
 import Combine
+import UIKit
 
 /// 동물병원 검색 ViewModel
 @MainActor
