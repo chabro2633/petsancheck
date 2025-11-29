@@ -6,29 +6,29 @@
 //
 
 import SwiftUI
-import CoreLocation
+import MapKit
 
 /// 산책 기록 상세 화면
 struct WalkRecordDetailView: View {
     let record: WalkSession
-    @State private var centerCoordinate: CLLocationCoordinate2D
-
-    // 카카오맵 API 키
-    private let kakaoMapAPIKey = "9e8b18c55ec9d4441317124e6ecf84b6"
+    @State private var region: MKCoordinateRegion
 
     init(record: WalkSession) {
         self.record = record
 
         // 경로의 중심 좌표로 지도 초기화
         if let center = record.centerCoordinate {
-            _centerCoordinate = State(initialValue: CLLocationCoordinate2D(
-                latitude: center.latitude,
-                longitude: center.longitude
+            _region = State(initialValue: MKCoordinateRegion(
+                center: CLLocationCoordinate2D(
+                    latitude: center.latitude,
+                    longitude: center.longitude
+                ),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))
         } else {
-            _centerCoordinate = State(initialValue: CLLocationCoordinate2D(
-                latitude: 37.5665,
-                longitude: 126.9780
+            _region = State(initialValue: MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))
         }
     }
@@ -36,16 +36,15 @@ struct WalkRecordDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // 카카오맵
-                WalkMapView(
-                    apiKey: kakaoMapAPIKey,
-                    centerCoordinate: $centerCoordinate,
-                    routeCoordinates: record.locations.map {
-                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                    }
-                )
-                .frame(height: 300)
-                .cornerRadius(12)
+                // Apple 지도
+                Map(coordinateRegion: $region, showsUserLocation: false)
+                    .overlay(
+                        WalkRouteOverlay(coordinates: record.locations.map {
+                            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                        })
+                    )
+                    .frame(height: 300)
+                    .cornerRadius(12)
 
                 // 통계 정보
                 VStack(spacing: 16) {
