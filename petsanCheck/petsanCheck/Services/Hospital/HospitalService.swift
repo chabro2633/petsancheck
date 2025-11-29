@@ -14,9 +14,8 @@ class HospitalService {
 
     private init() {}
 
-    // TODO: 본인의 카카오 REST API 키로 변경하세요
-    // https://developers.kakao.com/ 에서 앱 등록 후 REST API 키를 발급받을 수 있습니다
-    private let apiKey = "YOUR_KAKAO_REST_API_KEY"
+    // 카카오 REST API 키
+    private let apiKey = "9e8b18c55ec9d4441317124e6ecf84b6"
     private let baseURL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 
     /// 현재 위치 근처 동물병원 검색
