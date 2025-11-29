@@ -19,10 +19,21 @@ struct WalkMapView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.preferences.javaScriptEnabled = true
 
+        // 인라인 미디어 재생 설정
+        configuration.allowsInlineMediaPlayback = true
+
+        // 메시지 핸들러 등록
+        configuration.userContentController.add(context.coordinator, name: "consoleLog")
+
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.scrollView.isScrollEnabled = true
         webView.scrollView.bounces = true
+
+        // 디버깅 활성화 (iOS 16.4+)
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
+        }
 
         // HTML 로드
         let html = generateHTML()
@@ -69,14 +80,31 @@ struct WalkMapView: UIViewRepresentable {
         </head>
         <body>
             <div id="map"></div>
-            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&autoload=false"></script>
             <script>
+                // 콘솔 로그를 네이티브로 전달
+                console.log = function(message) {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.consoleLog) {
+                        window.webkit.messageHandlers.consoleLog.postMessage(String(message));
+                    }
+                };
+
+                console.error = console.log;
+
+                window.onerror = function(msg, url, line, col, error) {
+                    console.log('Error: ' + msg + ' at line ' + line);
+                    return false;
+                };
+            </script>
+            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)"></script>
+            <script>
+                console.log('Kakao Maps SDK script loaded');
+
                 var map;
                 var polyline;
                 var currentLocationMarker;
 
-                // Kakao Maps SDK 로드 완료 후 초기화
-                kakao.maps.load(function() {
+                try {
+                    console.log('Creating walk map...');
                     var mapContainer = document.getElementById('map');
                     var mapOption = {
                         center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
@@ -84,6 +112,7 @@ struct WalkMapView: UIViewRepresentable {
                     };
 
                     map = new kakao.maps.Map(mapContainer, mapOption);
+                    console.log('Walk map created successfully');
 
                     // 초기 폴리라인 생성
                     polyline = new kakao.maps.Polyline({
@@ -94,40 +123,58 @@ struct WalkMapView: UIViewRepresentable {
                         strokeStyle: 'solid'
                     });
                     polyline.setMap(map);
-                });
+                    console.log('Polyline created');
+                } catch (e) {
+                    console.log('Error creating walk map: ' + e.message);
+                }
 
                 // 경로 업데이트
                 function updateRoute(coordinates) {
-                    if (!map || !polyline) return;
+                    if (!map || !polyline) {
+                        console.log('updateRoute: map or polyline not ready');
+                        return;
+                    }
 
-                    var path = coordinates.map(function(coord) {
-                        return new kakao.maps.LatLng(coord.lat, coord.lng);
-                    });
+                    try {
+                        var path = coordinates.map(function(coord) {
+                            return new kakao.maps.LatLng(coord.lat, coord.lng);
+                        });
 
-                    polyline.setPath(path);
+                        polyline.setPath(path);
+                        console.log('Route updated with ' + coordinates.length + ' points');
+                    } catch (e) {
+                        console.log('Error updating route: ' + e.message);
+                    }
                 }
 
                 // 현재 위치 마커 업데이트
                 function updateCurrentLocation(lat, lng) {
-                    if (!map) return;
-
-                    // 기존 마커 제거
-                    if (currentLocationMarker) {
-                        currentLocationMarker.setMap(null);
+                    if (!map) {
+                        console.log('updateCurrentLocation: map not ready');
+                        return;
                     }
 
-                    var position = new kakao.maps.LatLng(lat, lng);
+                    try {
+                        // 기존 마커 제거
+                        if (currentLocationMarker) {
+                            currentLocationMarker.setMap(null);
+                        }
 
-                    // 파란색 원형 마커 생성
-                    var imageSrc = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iIzAwNjZGRiIgZmlsbC1vcGFjaXR5PSIwLjMiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI2IiBmaWxsPSIjMDA2NkZGIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIgZmlsbD0id2hpdGUiLz48L3N2Zz4=';
-                    var imageSize = new kakao.maps.Size(24, 24);
-                    var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+                        var position = new kakao.maps.LatLng(lat, lng);
 
-                    currentLocationMarker = new kakao.maps.Marker({
-                        position: position,
-                        image: markerImage,
-                        map: map
-                    });
+                        // 파란색 원형 마커 생성
+                        var imageSrc = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iIzAwNjZGRiIgZmlsbC1vcGFjaXR5PSIwLjMiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI2IiBmaWxsPSIjMDA2NkZGIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIgZmlsbD0id2hpdGUiLz48L3N2Zz4=';
+                        var imageSize = new kakao.maps.Size(24, 24);
+                        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                        currentLocationMarker = new kakao.maps.Marker({
+                            position: position,
+                            image: markerImage,
+                            map: map
+                        });
+                    } catch (e) {
+                        console.log('Error updating current location: ' + e.message);
+                    }
                 }
             </script>
         </body>
@@ -149,7 +196,7 @@ struct WalkMapView: UIViewRepresentable {
         webView.evaluateJavaScript(script)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: WalkMapView
 
         init(_ parent: WalkMapView) {
@@ -171,6 +218,12 @@ struct WalkMapView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             print("WalkMapView provisional navigation failed: \(error.localizedDescription)")
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "consoleLog" {
+                print("[WalkMap JS] \(message.body)")
+            }
         }
     }
 }

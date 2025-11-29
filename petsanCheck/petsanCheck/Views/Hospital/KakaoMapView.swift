@@ -20,13 +20,22 @@ struct KakaoMapView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.preferences.javaScriptEnabled = true
 
+        // 인라인 미디어 재생 설정
+        configuration.allowsInlineMediaPlayback = true
+
         // 메시지 핸들러 등록
         configuration.userContentController.add(context.coordinator, name: "markerTapped")
+        configuration.userContentController.add(context.coordinator, name: "consoleLog")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
+
+        // 디버깅 활성화 (iOS 16.4+)
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
+        }
 
         // HTML 로드
         let html = generateHTML()
@@ -68,13 +77,31 @@ struct KakaoMapView: UIViewRepresentable {
         </head>
         <body>
             <div id="map"></div>
-            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)&autoload=false"></script>
             <script>
+                // 콘솔 로그를 네이티브로 전달
+                console.log = function(message) {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.consoleLog) {
+                        window.webkit.messageHandlers.consoleLog.postMessage(String(message));
+                    }
+                };
+
+                console.error = console.log;
+
+                window.onerror = function(msg, url, line, col, error) {
+                    console.log('Error: ' + msg + ' at line ' + line);
+                    return false;
+                };
+            </script>
+            <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=\(apiKey)"></script>
+            <script>
+                console.log('Kakao Maps SDK script loaded');
+
                 var map;
                 var markers = [];
+                var currentMarker;
 
-                // Kakao Maps SDK 로드 완료 후 초기화
-                kakao.maps.load(function() {
+                try {
+                    console.log('Creating map...');
                     var mapContainer = document.getElementById('map');
                     var mapOption = {
                         center: new kakao.maps.LatLng(\(centerCoordinate.latitude), \(centerCoordinate.longitude)),
@@ -82,58 +109,83 @@ struct KakaoMapView: UIViewRepresentable {
                     };
 
                     map = new kakao.maps.Map(mapContainer, mapOption);
-                });
+                    console.log('Map created successfully');
+                } catch (e) {
+                    console.log('Error creating map: ' + e.message);
+                }
 
                 function clearMarkers() {
-                    if (!map) return;
+                    if (!map) {
+                        console.log('clearMarkers: map not ready');
+                        return;
+                    }
                     markers.forEach(marker => marker.setMap(null));
                     markers = [];
                 }
 
                 function addMarker(lat, lng, title, id) {
-                    if (!map) return;
+                    if (!map) {
+                        console.log('addMarker: map not ready');
+                        return;
+                    }
 
-                    var position = new kakao.maps.LatLng(lat, lng);
-                    var marker = new kakao.maps.Marker({
-                        position: position,
-                        map: map
-                    });
+                    try {
+                        var position = new kakao.maps.LatLng(lat, lng);
+                        var marker = new kakao.maps.Marker({
+                            position: position,
+                            map: map
+                        });
 
-                    var infowindow = new kakao.maps.InfoWindow({
-                        content: '<div style="padding:5px;font-size:12px;">' + title + '</div>'
-                    });
+                        var infowindow = new kakao.maps.InfoWindow({
+                            content: '<div style="padding:5px;font-size:12px;">' + title + '</div>'
+                        });
 
-                    kakao.maps.event.addListener(marker, 'mouseover', function() {
-                        infowindow.open(map, marker);
-                    });
+                        kakao.maps.event.addListener(marker, 'mouseover', function() {
+                            infowindow.open(map, marker);
+                        });
 
-                    kakao.maps.event.addListener(marker, 'mouseout', function() {
-                        infowindow.close();
-                    });
+                        kakao.maps.event.addListener(marker, 'mouseout', function() {
+                            infowindow.close();
+                        });
 
-                    kakao.maps.event.addListener(marker, 'click', function() {
-                        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.markerTapped) {
-                            window.webkit.messageHandlers.markerTapped.postMessage(id);
-                        }
-                    });
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.markerTapped) {
+                                window.webkit.messageHandlers.markerTapped.postMessage(id);
+                            }
+                        });
 
-                    markers.push(marker);
+                        markers.push(marker);
+                    } catch (e) {
+                        console.log('Error adding marker: ' + e.message);
+                    }
                 }
 
                 // 현재 위치 마커
                 function setCurrentLocation(lat, lng) {
-                    if (!map) return;
+                    if (!map) {
+                        console.log('setCurrentLocation: map not ready');
+                        return;
+                    }
 
-                    var position = new kakao.maps.LatLng(lat, lng);
-                    var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
-                    var imageSize = new kakao.maps.Size(24, 35);
-                    var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+                    try {
+                        // 기존 마커 제거
+                        if (currentMarker) {
+                            currentMarker.setMap(null);
+                        }
 
-                    var marker = new kakao.maps.Marker({
-                        position: position,
-                        image: markerImage,
-                        map: map
-                    });
+                        var position = new kakao.maps.LatLng(lat, lng);
+                        var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+                        var imageSize = new kakao.maps.Size(24, 35);
+                        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                        currentMarker = new kakao.maps.Marker({
+                            position: position,
+                            image: markerImage,
+                            map: map
+                        });
+                    } catch (e) {
+                        console.log('Error setting current location: ' + e.message);
+                    }
                 }
             </script>
         </body>
@@ -177,9 +229,11 @@ struct KakaoMapView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            if message.name == "markerTapped",
-               let hospitalId = message.body as? String,
-               let hospital = parent.hospitals.first(where: { $0.id == hospitalId }) {
+            if message.name == "consoleLog" {
+                print("[KakaoMap JS] \(message.body)")
+            } else if message.name == "markerTapped",
+                      let hospitalId = message.body as? String,
+                      let hospital = parent.hospitals.first(where: { $0.id == hospitalId }) {
                 parent.onMarkerTap?(hospital)
             }
         }
