@@ -6,25 +6,31 @@
 //
 
 import SwiftUI
-import MapKit
+import CoreLocation
 
 /// 산책 화면
 struct WalkView: View {
     @StateObject private var viewModel = WalkViewModel()
     @StateObject private var profileViewModel = ProfileViewModel()
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-    )
+    @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showDogSelection = false
     @State private var selectedDog: Dog?
+
+    // 카카오맵 API 키
+    private let kakaoMapAPIKey = "9e8b18c55ec9d4441317124e6ecf84b6"
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // 지도
-                Map(coordinateRegion: $region, showsUserLocation: true)
-                    .ignoresSafeArea()
+                // 카카오맵
+                WalkMapView(
+                    apiKey: kakaoMapAPIKey,
+                    centerCoordinate: $centerCoordinate,
+                    routeCoordinates: viewModel.routeLocations.map {
+                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                    }
+                )
+                .ignoresSafeArea()
 
                 VStack {
                     // 선택된 반려견 정보
@@ -83,7 +89,7 @@ struct WalkView: View {
             }
             .onChange(of: viewModel.currentLocation) { oldValue, newValue in
                 if let location = newValue {
-                    region.center = location.coordinate
+                    centerCoordinate = location.coordinate
                 }
             }
         }
