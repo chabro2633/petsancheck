@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hospital Map</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; }
+    </style>
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=9e8b18c55ec9d4441317124e6ecf84b6"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // 콘솔 로그를 네이티브로 전달
+        console.log = function(message) {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.consoleLog) {
+                window.webkit.messageHandlers.consoleLog.postMessage(String(message));
+            }
+        };
+
+        var map;
+        var markers = [];
+        var currentMarker;
+
+        // URL 파라미터에서 초기 좌표 읽기
+        var urlParams = new URLSearchParams(window.location.search);
+        var initLat = parseFloat(urlParams.get('lat')) || 37.5665;
+        var initLng = parseFloat(urlParams.get('lng')) || 126.9780;
+
+        // 지도 초기화
+        var mapContainer = document.getElementById('map');
+        var mapOption = {
+            center: new kakao.maps.LatLng(initLat, initLng),
+            level: 5
+        };
+
+        map = new kakao.maps.Map(mapContainer, mapOption);
+        console.log('Hospital map initialized');
+
+        // 네이티브에서 호출할 함수들
+        function setCenter(lat, lng) {
+            if (!map) return;
+            var moveLatLon = new kakao.maps.LatLng(lat, lng);
+            map.setCenter(moveLatLon);
+        }
+
+        function clearMarkers() {
+            if (!map) return;
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+        }
+
+        function addMarker(lat, lng, title, id) {
+            if (!map) return;
+
+            try {
+                var position = new kakao.maps.LatLng(lat, lng);
+                var marker = new kakao.maps.Marker({
+                    position: position,
+                    map: map
+                });
+
+                var infowindow = new kakao.maps.InfoWindow({
+                    content: '<div style="padding:5px;font-size:12px;">' + title + '</div>'
+                });
+
+                kakao.maps.event.addListener(marker, 'mouseover', function() {
+                    infowindow.open(map, marker);
+                });
+
+                kakao.maps.event.addListener(marker, 'mouseout', function() {
+                    infowindow.close();
+                });
+
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.markerTapped) {
+                        window.webkit.messageHandlers.markerTapped.postMessage(id);
+                    }
+                });
+
+                markers.push(marker);
+            } catch (e) {
+                console.log('Error adding marker: ' + e.message);
+            }
+        }
+
+        function setCurrentLocation(lat, lng) {
+            if (!map) return;
+
+            try {
+                if (currentMarker) {
+                    currentMarker.setMap(null);
+                }
+
+                var position = new kakao.maps.LatLng(lat, lng);
+                var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+                var imageSize = new kakao.maps.Size(24, 35);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                currentMarker = new kakao.maps.Marker({
+                    position: position,
+                    image: markerImage,
+                    map: map
+                });
+            } catch (e) {
+                console.log('Error setting current location: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

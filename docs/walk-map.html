@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Walk Map</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; }
+    </style>
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=9e8b18c55ec9d4441317124e6ecf84b6"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // 콘솔 로그를 네이티브로 전달
+        console.log = function(message) {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.consoleLog) {
+                window.webkit.messageHandlers.consoleLog.postMessage(String(message));
+            }
+        };
+
+        var map;
+        var polyline;
+        var currentMarker;
+
+        // URL 파라미터에서 초기 좌표 읽기
+        var urlParams = new URLSearchParams(window.location.search);
+        var initLat = parseFloat(urlParams.get('lat')) || 37.5665;
+        var initLng = parseFloat(urlParams.get('lng')) || 126.9780;
+
+        // 지도 초기화
+        var mapContainer = document.getElementById('map');
+        var mapOption = {
+            center: new kakao.maps.LatLng(initLat, initLng),
+            level: 3
+        };
+
+        map = new kakao.maps.Map(mapContainer, mapOption);
+        console.log('Walk map initialized');
+
+        // 경로 폴리라인 초기화
+        polyline = new kakao.maps.Polyline({
+            path: [],
+            strokeWeight: 5,
+            strokeColor: '#0066FF',
+            strokeOpacity: 0.8,
+            strokeStyle: 'solid'
+        });
+        polyline.setMap(map);
+
+        // 네이티브에서 호출할 함수들
+        function setCenter(lat, lng) {
+            if (!map) return;
+            var moveLatLon = new kakao.maps.LatLng(lat, lng);
+            map.setCenter(moveLatLon);
+        }
+
+        function addRoutePoint(lat, lng) {
+            if (!map || !polyline) return;
+
+            try {
+                var path = polyline.getPath();
+                path.push(new kakao.maps.LatLng(lat, lng));
+                polyline.setPath(path);
+            } catch (e) {
+                console.log('Error adding route point: ' + e.message);
+            }
+        }
+
+        function clearRoute() {
+            if (!polyline) return;
+            polyline.setPath([]);
+        }
+
+        function setRoute(coordinatesJson) {
+            if (!map || !polyline) return;
+
+            try {
+                var coordinates = JSON.parse(coordinatesJson);
+                var path = coordinates.map(function(coord) {
+                    return new kakao.maps.LatLng(coord.latitude, coord.longitude);
+                });
+                polyline.setPath(path);
+
+                // 경로에 맞게 지도 범위 조정
+                if (path.length > 0) {
+                    var bounds = new kakao.maps.LatLngBounds();
+                    path.forEach(function(point) {
+                        bounds.extend(point);
+                    });
+                    map.setBounds(bounds);
+                }
+            } catch (e) {
+                console.log('Error setting route: ' + e.message);
+            }
+        }
+
+        function setCurrentLocation(lat, lng) {
+            if (!map) return;
+
+            try {
+                if (currentMarker) {
+                    currentMarker.setMap(null);
+                }
+
+                var position = new kakao.maps.LatLng(lat, lng);
+                var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png';
+                var imageSize = new kakao.maps.Size(24, 35);
+                var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                currentMarker = new kakao.maps.Marker({
+                    position: position,
+                    image: markerImage,
+                    map: map
+                });
+            } catch (e) {
+                console.log('Error setting current location: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -6,32 +6,27 @@
 //
 
 import SwiftUI
-import MapKit
+import CoreLocation
 
 /// 병원 검색 화면
 struct HospitalView: View {
     @StateObject private var viewModel = HospitalViewModel()
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
-        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-    )
+    @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showingSearchOptions = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
-                    // Apple Maps
-                    Map(coordinateRegion: $region,
-                        showsUserLocation: true,
-                        annotationItems: viewModel.hospitals) { hospital in
-                        MapAnnotation(coordinate: hospital.coordinate) {
-                            HospitalMarker(hospital: hospital) {
-                                viewModel.selectedHospital = hospital
-                                region.center = hospital.coordinate
-                            }
+                    // 카카오맵
+                    KakaoMapView(
+                        centerCoordinate: $centerCoordinate,
+                        hospitals: viewModel.hospitals,
+                        onMarkerTap: { hospital in
+                            viewModel.selectedHospital = hospital
+                            centerCoordinate = hospital.coordinate
                         }
-                    }
+                    )
                     .frame(height: 250)
                     .overlay(alignment: .topTrailing) {
                         VStack(spacing: 12) {
@@ -39,7 +34,7 @@ struct HospitalView: View {
                             Button(action: {
                                 if let coordinate = viewModel.currentCoordinate {
                                     withAnimation {
-                                        region.center = coordinate
+                                        centerCoordinate = coordinate
                                     }
                                 }
                             }) {
@@ -99,7 +94,7 @@ struct HospitalView: View {
                                 HospitalRow(hospital: hospital)
                                     .onTapGesture {
                                         viewModel.selectedHospital = hospital
-                                        region.center = hospital.coordinate
+                                        centerCoordinate = hospital.coordinate
                                     }
                             }
                         }
@@ -155,32 +150,6 @@ struct HospitalView: View {
             }
             .onAppear {
                 viewModel.requestLocation()
-            }
-        }
-    }
-}
-
-// MARK: - 병원 마커
-struct HospitalMarker: View {
-    let hospital: Hospital
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 0) {
-                Image(systemName: "cross.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.red)
-                    .background(
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 32, height: 32)
-                    )
-
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .offset(y: -5)
             }
         }
     }
