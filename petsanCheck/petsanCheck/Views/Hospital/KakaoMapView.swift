@@ -7,6 +7,7 @@
 
 import SwiftUI
 import WebKit
+import CoreLocation
 
 /// 카카오맵 WebView
 struct KakaoMapView: UIViewRepresentable {
