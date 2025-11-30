@@ -140,6 +140,19 @@ class WalkViewModel: ObservableObject {
     var currentLocation: CLLocation? {
         locationManager.location
     }
+
+    /// 위치 권한 요청 및 위치 업데이트 시작
+    func requestLocationUpdate() {
+        // 권한 확인
+        if locationManager.authorizationStatus == .notDetermined {
+            locationManager.requestPermission()
+        }
+
+        // 위치 업데이트 시작 (추적 중이 아닐 때만)
+        if !isTracking {
+            locationManager.startUpdatingLocation()
+        }
+    }
 }
 
 /// 산책 통계 정보

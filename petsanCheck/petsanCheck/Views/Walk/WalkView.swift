@@ -27,24 +27,6 @@ struct WalkView: View {
                     }
                 )
                 .ignoresSafeArea()
-                .overlay(alignment: .topTrailing) {
-                    // 내 위치로 이동 버튼
-                    Button(action: {
-                        if let coordinate = viewModel.currentLocation?.coordinate {
-                            withAnimation {
-                                centerCoordinate = coordinate
-                            }
-                        }
-                    }) {
-                        Image(systemName: "location.fill")
-                            .padding(12)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-                    .padding()
-                }
 
                 VStack {
                     // 상단 컴팩트 정보 영역
@@ -66,6 +48,31 @@ struct WalkView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
 
                     Spacer()
+
+                    // 내 위치 찾기 버튼
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            // 위치 업데이트 요청
+                            viewModel.requestLocationUpdate()
+
+                            // 현재 위치가 있으면 이동
+                            if let coordinate = viewModel.currentLocation?.coordinate {
+                                withAnimation {
+                                    centerCoordinate = coordinate
+                                }
+                            }
+                        }) {
+                            Image(systemName: "location.fill")
+                                .padding(12)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
+                        .padding(.trailing)
+                    }
+                    .padding(.bottom, 8)
 
                     // 컨트롤 버튼
                     WalkControlButtons(
@@ -113,7 +120,10 @@ struct WalkView: View {
                 }
             }
             .onAppear {
-                // 뷰가 나타날 때 현재 위치로 지도 중심 설정
+                // 뷰가 나타날 때 위치 업데이트 시작
+                viewModel.requestLocationUpdate()
+
+                // 현재 위치로 지도 중심 설정
                 if let location = viewModel.currentLocation {
                     centerCoordinate = location.coordinate
                 }
