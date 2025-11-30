@@ -112,6 +112,12 @@ struct WalkView: View {
                     centerCoordinate = location.coordinate
                 }
             }
+            .onAppear {
+                // 뷰가 나타날 때 현재 위치로 지도 중심 설정
+                if let location = viewModel.currentLocation {
+                    centerCoordinate = location.coordinate
+                }
+            }
         }
     }
 }

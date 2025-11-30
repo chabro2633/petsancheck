@@ -10,6 +10,7 @@ import SwiftUI
 /// 홈 화면
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @Binding var selectedTab: Int
 
     var body: some View {
         NavigationStack {
@@ -40,7 +41,7 @@ struct HomeView: View {
                     }
 
                     // 퀵 액션 버튼들
-                    QuickActionsView()
+                    QuickActionsView(selectedTab: $selectedTab)
                 }
                 .padding()
             }
@@ -190,6 +191,8 @@ struct WalkRecommendationCardView: View {
 
 // MARK: - 퀵 액션 뷰
 struct QuickActionsView: View {
+    @Binding var selectedTab: Int
+
     var body: some View {
         VStack(spacing: 12) {
             Text("퀵 액션")
@@ -197,7 +200,9 @@ struct QuickActionsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
-                NavigationLink(destination: WalkView()) {
+                Button(action: {
+                    selectedTab = 1 // 산책 탭으로 이동
+                }) {
                     QuickActionCard(
                         icon: "figure.walk",
                         title: "산책 시작",
@@ -205,7 +210,9 @@ struct QuickActionsView: View {
                     )
                 }
 
-                NavigationLink(destination: HospitalView()) {
+                Button(action: {
+                    selectedTab = 2 // 병원 탭으로 이동
+                }) {
                     QuickActionCard(
                         icon: "cross.fill",
                         title: "병원 찾기",
@@ -223,7 +230,9 @@ struct QuickActionsView: View {
                     )
                 }
 
-                NavigationLink(destination: FeedView()) {
+                Button(action: {
+                    selectedTab = 3 // 피드 탭으로 이동
+                }) {
                     QuickActionCard(
                         icon: "photo.fill",
                         title: "사진 공유",
@@ -256,5 +265,5 @@ struct QuickActionCard: View {
 }
 
 #Preview {
-    HomeView()
+    HomeView(selectedTab: .constant(0))
 }
