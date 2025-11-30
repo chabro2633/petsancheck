@@ -53,13 +53,15 @@ struct WalkView: View {
                     HStack {
                         Spacer()
                         Button(action: {
-                            // 위치 업데이트 요청
-                            viewModel.requestLocationUpdate()
-
-                            // 현재 위치가 있으면 이동
+                            // 현재 위치가 있으면 바로 이동
                             if let coordinate = viewModel.currentLocation?.coordinate {
                                 withAnimation {
                                     centerCoordinate = coordinate
+                                }
+                            } else {
+                                // 위치가 없으면 업데이트 요청
+                                Task {
+                                    await viewModel.requestLocationUpdate()
                                 }
                             }
                         }) {
@@ -121,11 +123,13 @@ struct WalkView: View {
             }
             .onAppear {
                 // 뷰가 나타날 때 위치 업데이트 시작
-                viewModel.requestLocationUpdate()
+                Task {
+                    await viewModel.requestLocationUpdate()
 
-                // 현재 위치로 지도 중심 설정
-                if let location = viewModel.currentLocation {
-                    centerCoordinate = location.coordinate
+                    // 현재 위치로 지도 중심 설정
+                    if let location = viewModel.currentLocation {
+                        centerCoordinate = location.coordinate
+                    }
                 }
             }
         }

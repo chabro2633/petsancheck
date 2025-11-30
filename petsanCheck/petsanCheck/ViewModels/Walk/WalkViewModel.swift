@@ -142,14 +142,17 @@ class WalkViewModel: ObservableObject {
     }
 
     /// 위치 권한 요청 및 위치 업데이트 시작
-    func requestLocationUpdate() {
+    func requestLocationUpdate() async {
         // 권한 확인
         if locationManager.authorizationStatus == .notDetermined {
             locationManager.requestPermission()
+            // 권한 요청 후 잠시 대기
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5초
         }
 
         // 위치 업데이트 시작 (추적 중이 아닐 때만)
-        if !isTracking {
+        if !isTracking && (locationManager.authorizationStatus == .authorizedWhenInUse ||
+                           locationManager.authorizationStatus == .authorizedAlways) {
             locationManager.startUpdatingLocation()
         }
     }
