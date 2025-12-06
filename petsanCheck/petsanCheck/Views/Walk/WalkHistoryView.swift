@@ -333,7 +333,8 @@ struct WalkRecordRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(record.startTime, style: .date)
+                // 날짜 (YYYY-MM-DD 형식)
+                Text(record.dateString)
                     .font(.headline)
                     .foregroundColor(AppTheme.textPrimary)
 
@@ -348,10 +349,30 @@ struct WalkRecordRow: View {
                         .foregroundColor(AppTheme.success)
                         .cornerRadius(8)
                 } else {
-                    Text(record.startTime, style: .time)
+                    Text(record.timeString)
                         .font(.caption)
                         .foregroundColor(AppTheme.textSecondary)
                 }
+            }
+
+            // 위치 정보 (있을 경우)
+            if let locationName = record.locationName, !locationName.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.caption2)
+                    Text(locationName)
+                }
+                .font(.caption)
+                .foregroundColor(AppTheme.primary)
+            } else if let weatherLocation = record.weatherAtStart?.locationName, !weatherLocation.isEmpty {
+                // 날씨 정보에 저장된 위치명 사용
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.caption2)
+                    Text(weatherLocation)
+                }
+                .font(.caption)
+                .foregroundColor(AppTheme.primary)
             }
 
             HStack(spacing: 16) {

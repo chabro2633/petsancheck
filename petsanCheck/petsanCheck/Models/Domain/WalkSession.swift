@@ -16,6 +16,7 @@ struct WalkSession: Codable, Identifiable {
     var locations: [WalkLocation]
     var weatherAtStart: WeatherInfo?
     var notes: String?
+    var locationName: String?  // 산책 위치 이름
 
     init(
         id: UUID = UUID(),
@@ -23,7 +24,8 @@ struct WalkSession: Codable, Identifiable {
         endTime: Date? = nil,
         locations: [WalkLocation] = [],
         weatherAtStart: WeatherInfo? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        locationName: String? = nil
     ) {
         self.id = id
         self.startTime = startTime
@@ -31,6 +33,21 @@ struct WalkSession: Codable, Identifiable {
         self.locations = locations
         self.weatherAtStart = weatherAtStart
         self.notes = notes
+        self.locationName = locationName
+    }
+
+    /// 날짜 문자열 (YYYY-MM-DD 형식)
+    var dateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: startTime)
+    }
+
+    /// 시간 문자열 (HH:mm 형식)
+    var timeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: startTime)
     }
 
     /// 산책 진행 중 여부

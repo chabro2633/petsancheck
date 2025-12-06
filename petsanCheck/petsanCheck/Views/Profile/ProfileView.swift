@@ -41,6 +41,11 @@ struct ProfileView: View {
                         DogProfileCard(dog: dog)
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                viewModel.selectedDog = dog
+                                viewModel.isShowingEditDog = true
+                            }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     viewModel.deleteDog(dog)
@@ -63,6 +68,9 @@ struct ProfileView: View {
             .scrollContentBackground(.hidden)
             .background(AppTheme.background)
             .navigationTitle("프로필")
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
