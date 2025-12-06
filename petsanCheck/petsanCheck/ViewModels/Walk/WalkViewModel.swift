@@ -19,11 +19,15 @@ class WalkViewModel: ObservableObject {
     @Published var isTracking = false
     @Published var isPaused = false
     @Published var showPermissionAlert = false
+    @Published var showBackgroundPermissionAlert = false  // "항상" 권한 유도 알럿
     @Published var selectedDogId: UUID?
     @Published var selectedDogName: String?
     @Published var showCompletionPopup = false
     @Published var completedWalkStats: WalkStats?
     @Published var completedDogName: String?
+
+    // 백그라운드 권한 알럿 후 산책 시작을 위한 임시 저장
+    private var pendingDog: Dog?
 
     private let locationManager: LocationManager
     private var cancellables = Set<AnyCancellable>()
@@ -95,6 +99,25 @@ class WalkViewModel: ObservableObject {
             return
         }
 
+        // "항상" 권한이 아니면 백그라운드 권한 유도 알럿 표시
+        if locationManager.authorizationStatus != .authorizedAlways {
+            pendingDog = dog
+            showBackgroundPermissionAlert = true
+            return
+        }
+
+        // 실제 산책 시작
+        performStartWalk(weatherInfo: weatherInfo, dog: dog)
+    }
+
+    /// 백그라운드 권한 없이 산책 시작 (사용자가 "나중에" 선택 시)
+    func startWalkWithoutBackgroundPermission() {
+        performStartWalk(weatherInfo: nil, dog: pendingDog)
+        pendingDog = nil
+    }
+
+    /// 실제 산책 시작 로직
+    private func performStartWalk(weatherInfo: WeatherInfo? = nil, dog: Dog? = nil) {
         // 선택된 반려견 저장
         selectedDogId = dog?.id
         selectedDogName = dog?.name
@@ -115,6 +138,12 @@ class WalkViewModel: ObservableObject {
 
         // 타이머 시작
         startTimer()
+    }
+
+    /// 백그라운드 권한 알럿 취소
+    func cancelBackgroundPermissionAlert() {
+        pendingDog = nil
+        showBackgroundPermissionAlert = false
     }
 
     /// 산책 종료

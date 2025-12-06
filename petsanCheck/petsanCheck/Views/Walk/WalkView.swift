@@ -136,6 +136,23 @@ struct WalkView: View {
             } message: {
                 Text("산책 경로를 추적하려면 위치 권한이 필요합니다. 설정에서 위치 권한을 허용해주세요.")
             }
+            .alert("백그라운드 위치 권한", isPresented: $viewModel.showBackgroundPermissionAlert) {
+                Button("설정으로 이동") {
+                    viewModel.cancelBackgroundPermissionAlert()
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("나중에") {
+                    // 백그라운드 권한 없이 산책 시작
+                    viewModel.startWalkWithoutBackgroundPermission()
+                }
+                Button("취소", role: .cancel) {
+                    viewModel.cancelBackgroundPermissionAlert()
+                }
+            } message: {
+                Text("앱이 백그라운드에 있을 때도 산책 경로를 기록하려면 위치 권한을 '항상'으로 설정해주세요.\n\n설정 > 위치 > 항상")
+            }
             .sheet(isPresented: $showDogSelection) {
                 DogSelectionView(dogs: profileViewModel.dogs) { dog in
                     showDogSelection = false

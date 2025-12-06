@@ -127,6 +127,12 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.distanceFilter = 3.0
 
+        // 백그라운드 위치 업데이트 활성화
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.showsBackgroundLocationIndicator = true  // 상태바에 위치 아이콘 표시
+
+        print("[Location] 백그라운드 위치 추적 활성화")
+
         startUpdatingLocation()
     }
 
@@ -137,6 +143,12 @@ class LocationManager: NSObject, ObservableObject {
         isTracking = false
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager.distanceFilter = minimumDistanceFilter
+
+        // 백그라운드 위치 업데이트 비활성화
+        locationManager.allowsBackgroundLocationUpdates = false
+        locationManager.showsBackgroundLocationIndicator = false
+
+        print("[Location] 백그라운드 위치 추적 비활성화")
 
         stopUpdatingLocation()
     }
