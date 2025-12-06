@@ -240,6 +240,187 @@ struct FeedPostCard: View {
                 .padding(.bottom, 16)
         }
         .background(AppTheme.cardBackground)
+        .sheet(isPresented: $showComments) {
+            CommentsSheetView(post: post, viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+// MARK: - 댓글 시트 뷰
+struct CommentsSheetView: View {
+    let post: FeedPost
+    @ObservedObject var viewModel: FeedViewModel
+    @State private var newCommentText = ""
+    @FocusState private var isCommentFieldFocused: Bool
+
+    var comments: [FeedComment] {
+        viewModel.commentsMap[post.id] ?? []
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // 댓글 목록
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if comments.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(AppTheme.secondary)
+
+                                Text("아직 댓글이 없어요")
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.textSecondary)
+
+                                Text("첫 번째 댓글을 남겨보세요!")
+                                    .font(.caption)
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                        } else {
+                            ForEach(comments) { comment in
+                                CommentRow(
+                                    comment: comment,
+                                    onLike: {
+                                        viewModel.toggleCommentLike(commentId: comment.id, postId: post.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+
+                Divider()
+
+                // 댓글 입력 영역
+                HStack(spacing: 12) {
+                    // 프로필 이미지
+                    Circle()
+                        .fill(AppTheme.primary.opacity(0.2))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.primary)
+                        )
+
+                    // 입력 필드
+                    HStack {
+                        TextField("댓글 달기...", text: $newCommentText)
+                            .font(.subheadline)
+                            .focused($isCommentFieldFocused)
+
+                        if !newCommentText.isEmpty {
+                            Button(action: submitComment) {
+                                Text("게시")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(AppTheme.primary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.background)
+                    .cornerRadius(20)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .background(AppTheme.cardBackground)
+            }
+            .background(AppTheme.background)
+            .navigationTitle("댓글")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                viewModel.loadComments(for: post.id)
+            }
+        }
+    }
+
+    private func submitComment() {
+        guard !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        viewModel.addComment(to: post.id, content: newCommentText)
+        newCommentText = ""
+        isCommentFieldFocused = false
+    }
+}
+
+// MARK: - 댓글 행
+struct CommentRow: View {
+    let comment: FeedComment
+    let onLike: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // 프로필 이미지
+            Circle()
+                .fill(AppTheme.secondary.opacity(0.2))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondary)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                // 작성자 이름 + 내용
+                HStack(alignment: .top) {
+                    Text(comment.authorName)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(AppTheme.textPrimary)
+                    +
+                    Text(" ")
+                    +
+                    Text(comment.content)
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.textPrimary)
+
+                    Spacer()
+                }
+
+                // 시간 + 좋아요 수
+                HStack(spacing: 16) {
+                    Text(relativeTimeString)
+                        .font(.caption)
+                        .foregroundColor(AppTheme.textSecondary)
+
+                    if comment.likeCount > 0 {
+                        Text("좋아요 \(comment.likeCount)개")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+
+                    Button(action: {}) {
+                        Text("답글 달기")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                }
+            }
+
+            // 좋아요 버튼
+            Button(action: onLike) {
+                Image(systemName: comment.isLiked ? "heart.fill" : "heart")
+                    .font(.caption)
+                    .foregroundColor(comment.isLiked ? .red : AppTheme.textSecondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+    }
+
+    private var relativeTimeString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: comment.createdAt, relativeTo: Date())
     }
 }
 
@@ -289,11 +470,6 @@ struct PostHeader: View {
             }
 
             Spacer()
-
-            Button(action: {}) {
-                Image(systemName: "ellipsis")
-                    .foregroundColor(AppTheme.textPrimary)
-            }
         }
         .padding(.horizontal)
         .padding(.vertical, 12)

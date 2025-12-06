@@ -228,4 +228,102 @@ class FeedViewModel: ObservableObject {
 
         stories[index] = updatedStory
     }
+
+    // MARK: - 댓글 관련
+
+    /// 댓글 저장소 (postId: comments)
+    @Published var commentsMap: [UUID: [FeedComment]] = [:]
+
+    /// 특정 게시글의 댓글 로드
+    func loadComments(for postId: UUID) {
+        // 샘플 댓글 데이터 생성
+        if commentsMap[postId] == nil {
+            commentsMap[postId] = generateSampleComments(for: postId)
+        }
+    }
+
+    /// 댓글 추가
+    func addComment(to postId: UUID, content: String) {
+        let newComment = FeedComment(
+            postId: postId,
+            authorName: "나",
+            authorProfileImage: "person.circle.fill",
+            content: content
+        )
+
+        if commentsMap[postId] != nil {
+            commentsMap[postId]?.insert(newComment, at: 0)
+        } else {
+            commentsMap[postId] = [newComment]
+        }
+
+        // 댓글 수 업데이트
+        if let index = posts.firstIndex(where: { $0.id == postId }) {
+            let currentPost = posts[index]
+            posts[index] = FeedPost(
+                id: currentPost.id,
+                authorId: currentPost.authorId,
+                authorName: currentPost.authorName,
+                authorProfileImage: currentPost.authorProfileImage,
+                petId: currentPost.petId,
+                petName: currentPost.petName,
+                petBreed: currentPost.petBreed,
+                mediaItems: currentPost.mediaItems,
+                content: currentPost.content,
+                location: currentPost.location,
+                walkDistance: currentPost.walkDistance,
+                walkDuration: currentPost.walkDuration,
+                likeCount: currentPost.likeCount,
+                commentCount: currentPost.commentCount + 1,
+                isLiked: currentPost.isLiked,
+                isBookmarked: currentPost.isBookmarked,
+                createdAt: currentPost.createdAt
+            )
+        }
+    }
+
+    /// 댓글 좋아요 토글
+    func toggleCommentLike(commentId: UUID, postId: UUID) {
+        guard var comments = commentsMap[postId],
+              let index = comments.firstIndex(where: { $0.id == commentId }) else { return }
+
+        let currentComment = comments[index]
+        let newLikeCount = currentComment.isLiked ? currentComment.likeCount - 1 : currentComment.likeCount + 1
+
+        comments[index] = FeedComment(
+            id: currentComment.id,
+            postId: currentComment.postId,
+            authorId: currentComment.authorId,
+            authorName: currentComment.authorName,
+            authorProfileImage: currentComment.authorProfileImage,
+            content: currentComment.content,
+            likeCount: newLikeCount,
+            isLiked: !currentComment.isLiked,
+            createdAt: currentComment.createdAt
+        )
+
+        commentsMap[postId] = comments
+    }
+
+    /// 샘플 댓글 생성
+    private func generateSampleComments(for postId: UUID) -> [FeedComment] {
+        let sampleNames = ["댕댕이맘", "산책왕", "멍뭉이사랑", "강아지집사", "해피독"]
+        let sampleContents = [
+            "너무 귀여워요! 🐶",
+            "오늘 날씨 좋았겠네요~",
+            "우리 강아지도 데려가고 싶어요!",
+            "산책 코스 추천해주세요!",
+            "행복해 보여요 ❤️"
+        ]
+
+        return (0..<min(3, Int.random(in: 1...5))).map { i in
+            FeedComment(
+                postId: postId,
+                authorName: sampleNames[i % sampleNames.count],
+                content: sampleContents[i % sampleContents.count],
+                likeCount: Int.random(in: 0...20),
+                createdAt: Date().addingTimeInterval(-Double.random(in: 60...86400))
+            )
+        }
+    }
 }
