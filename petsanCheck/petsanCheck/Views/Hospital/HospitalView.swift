@@ -13,6 +13,7 @@ struct HospitalView: View {
     @StateObject private var viewModel = HospitalViewModel()
     @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showingSearchOptions = false
+    @State private var hasSetInitialLocation = false
 
     var body: some View {
         NavigationStack {
@@ -25,7 +26,8 @@ struct HospitalView: View {
                         onMarkerTap: { hospital in
                             viewModel.selectedHospital = hospital
                             centerCoordinate = hospital.coordinate
-                        }
+                        },
+                        currentLocation: viewModel.currentCoordinate
                     )
                     .frame(height: 250)
                     .overlay(alignment: .topTrailing) {
@@ -157,6 +159,13 @@ struct HospitalView: View {
             }
             .onAppear {
                 viewModel.requestLocation()
+            }
+            .onChange(of: viewModel.currentCoordinate?.latitude) { _, _ in
+                // 처음 위치를 받으면 지도 중심을 현재 위치로 이동
+                if !hasSetInitialLocation, let coordinate = viewModel.currentCoordinate {
+                    centerCoordinate = coordinate
+                    hasSetInitialLocation = true
+                }
             }
         }
     }
