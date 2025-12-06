@@ -1,69 +1,82 @@
-# petsanCheck - 반려견 산책 도우미
+# petsanCheck 소스코드
 
-## 프로젝트 구조
+## 폴더 구조
 
 ```
 petsanCheck/
+├── Info.plist           # API 키 설정 파일
+├── petsanCheckApp.swift # 앱 진입점
+├── ContentView.swift    # 루트 뷰
+│
 ├── Models/              # 데이터 모델
-│   ├── Domain/         # 비즈니스 로직 모델
-│   ├── API/            # API 응답 모델
-│   └── CoreData/       # CoreData 엔티티
+│   ├── Domain/          # Dog, WalkSession, Hospital 등
+│   ├── API/             # WeatherAPIResponse, KakaoLocalAPIResponse
+│   └── CoreData/        # petsanCheck.xcdatamodeld
 │
-├── Views/              # SwiftUI 뷰
-│   ├── Home/           # 홈 화면
-│   ├── Walk/           # 산책 관련 화면
-│   ├── Hospital/       # 동물병원 검색
-│   ├── Feed/           # 커뮤니티 피드
-│   ├── Profile/        # 프로필 관리
-│   ├── Onboarding/     # 온보딩
-│   ├── Shared/         # 공유 컴포넌트
-│   └── Main/           # 메인 탭 구조
+├── Views/               # SwiftUI 화면
+│   ├── Home/            # HomeView - 날씨, 산책 추천
+│   ├── Walk/            # WalkView, WalkMapView, WalkHistoryView
+│   ├── Hospital/        # HospitalView, KakaoMapView
+│   ├── Feed/            # FeedView - 커뮤니티
+│   └── Profile/         # ProfileView - 반려견 관리
 │
-├── ViewModels/         # 비즈니스 로직
-│   ├── Home/
-│   ├── Walk/
-│   ├── Hospital/
-│   ├── Feed/
-│   ├── Profile/
-│   └── Onboarding/
+├── ViewModels/          # MVVM ViewModel
+│   ├── Home/            # HomeViewModel
+│   ├── Walk/            # WalkViewModel, WalkHistoryViewModel
+│   ├── Hospital/        # HospitalViewModel
+│   ├── Feed/            # FeedViewModel
+│   └── Profile/         # ProfileViewModel
 │
-├── Services/           # 외부 서비스
-│   ├── Network/        # API 통신
-│   ├── Storage/        # 데이터 저장
-│   └── External/       # 외부 API (날씨, 지도)
+├── Services/            # 외부 서비스
+│   ├── Weather/         # WeatherService (OpenWeatherMap)
+│   ├── Hospital/        # HospitalService (카카오 로컬 API)
+│   └── Storage/         # CoreDataService
 │
-├── Managers/           # 시스템 관리자
-│   # LocationManager, NotificationManager 등
+├── Utils/               # 유틸리티
+│   ├── LocationManager  # 위치 서비스 관리
+│   └── Extensions/      # Swift 확장
 │
-├── Utils/              # 유틸리티
-│   ├── Extensions/     # Swift 확장
-│   ├── Helpers/        # 헬퍼 함수
-│   └── Constants/      # 상수 정의
-│
-└── Components/         # 재사용 가능한 UI 컴포넌트
-    ├── Cards/          # 카드 컴포넌트
-    ├── Charts/         # 차트 컴포넌트
-    ├── Common/         # 공통 컴포넌트
-    └── Map/            # 지도 관련 컴포넌트
+└── Components/          # 재사용 컴포넌트
+    ├── Cards/           # 카드 UI
+    └── Common/          # 공통 버튼, 텍스트필드 등
 ```
 
-## 아키텍처
+## 주요 파일 설명
 
-- **MVVM** (Model-View-ViewModel) 패턴
-- **SwiftUI** UI 프레임워크
-- **Combine** 반응형 프로그래밍
-- **CoreData** 로컬 데이터 저장
+### 핵심 ViewModel
 
-## 주요 기능
+| 파일 | 설명 |
+|------|------|
+| `WalkViewModel.swift` | 산책 추적 싱글톤, Timer/GPS 관리 |
+| `HomeViewModel.swift` | 날씨 정보, 한국어 위치명 |
+| `HospitalViewModel.swift` | 주변 병원 검색 |
 
-1. 🌤️ 날씨 기반 산책 추천
-2. 📍 실시간 산책 경로 추적
-3. 🏥 주변 동물병원 검색
-4. 📱 산책 기록 및 통계
-5. 👥 커뮤니티 피드
+### 서비스
 
-## 개발 환경
+| 파일 | 설명 |
+|------|------|
+| `WeatherService.swift` | OpenWeatherMap API |
+| `HospitalService.swift` | 카카오 로컬 API |
+| `CoreDataService.swift` | 로컬 데이터 저장 |
 
-- Xcode 26.1.1+
-- iOS 17.0+
-- Swift 5.0+
+### 지도 관련
+
+| 파일 | 설명 |
+|------|------|
+| `WalkMapView.swift` | 산책 경로 표시 (카카오맵 WebView) |
+| `KakaoMapView.swift` | 병원 마커 표시 (카카오맵 WebView) |
+| `docs/walk.html` | 산책 지도 HTML |
+| `docs/hospital.html` | 병원 지도 HTML |
+
+## API 키 관리
+
+API 키는 `Info.plist`에서 관리됩니다:
+
+- `KAKAO_MAP_API_KEY`: 카카오맵 JavaScript 키
+- `KAKAO_REST_API_KEY`: 카카오 로컬 REST API 키
+- `OPENWEATHER_API_KEY`: OpenWeatherMap API 키
+
+코드에서 사용:
+```swift
+Bundle.main.object(forInfoDictionaryKey: "KAKAO_MAP_API_KEY") as? String
+```

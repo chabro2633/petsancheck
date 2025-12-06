@@ -27,9 +27,9 @@ class LocationManager: NSObject, ObservableObject {
     // 위치 필터링을 위한 설정값 (추적용 - 엄격함)
     private let minimumHorizontalAccuracyForTracking: CLLocationAccuracy = 20.0  // 추적용: 20m
     // 초기 위치용 - 더 관대함 (빠른 표시를 위해)
-    private let minimumHorizontalAccuracyForInitial: CLLocationAccuracy = 100.0  // 초기: 100m
+    private let minimumHorizontalAccuracyForInitial: CLLocationAccuracy = 500.0  // 초기: 500m까지 허용 (더 빠른 표시)
     private let minimumDistanceFilter: CLLocationDistance = 5.0
-    private let maximumLocationAge: TimeInterval = 30.0  // 초기: 30초까지 허용
+    private let maximumLocationAge: TimeInterval = 60.0  // 초기: 60초까지 허용 (더 오래된 캐시 사용)
     private let maximumLocationAgeForTracking: TimeInterval = 10.0  // 추적: 10초
 
     override init() {
@@ -63,23 +63,25 @@ class LocationManager: NSObject, ObservableObject {
 
         isLocating = true
 
-        // 캐시된 위치가 있으면 먼저 사용 (30초 이내)
+        // 캐시된 위치가 있으면 먼저 사용 (60초 이내면 바로 사용)
         if let cachedLocation = locationManager.location,
-           -cachedLocation.timestamp.timeIntervalSinceNow < 30 {
+           -cachedLocation.timestamp.timeIntervalSinceNow < 60 {
             self.location = cachedLocation
-            print("[Location] 캐시된 위치 사용: \(cachedLocation.coordinate)")
+            isLocating = false
+            print("[Location] 캐시된 위치 즉시 사용: \(cachedLocation.coordinate) (정확도: \(String(format: "%.0f", cachedLocation.horizontalAccuracy))m)")
+            // 캐시 사용 후에도 더 정확한 위치를 백그라운드에서 찾음
         }
 
         // 즉시 위치 업데이트 시작
         locationManager.startUpdatingLocation()
 
-        // 3초 후에도 위치를 못 찾으면 정확도 낮춰서 재시도
+        // 1.5초 후에도 위치를 못 찾으면 정확도 낮춰서 재시도 (더 빠른 폴백)
         initialLocationTimer?.invalidate()
-        initialLocationTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+        initialLocationTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 if self?.location == nil {
-                    print("[Location] 3초 내 위치 못찾음 - 정확도 낮춤")
-                    self?.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+                    print("[Location] 1.5초 내 위치 못찾음 - 정확도 낮춤")
+                    self?.locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
                 }
             }
         }

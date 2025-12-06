@@ -165,12 +165,13 @@ struct DogFormView: View {
 
     @State private var name: String
     @State private var breed: String
-    @State private var birthDate: Date
+    @State private var birthDateText: String  // yyyy, yyyy-mm, yyyy-mm-dd 형식
     @State private var weight: String
     @State private var gender: Dog.Gender
     @State private var notes: String
     @State private var profileImageData: Data?
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var birthDateError: String?
 
     private let existingDog: Dog?
 
@@ -180,11 +181,62 @@ struct DogFormView: View {
 
         _name = State(initialValue: dog?.name ?? "")
         _breed = State(initialValue: dog?.breed ?? "")
-        _birthDate = State(initialValue: dog?.birthDate ?? Date())
+
+        // 기존 생년월일을 yyyy-mm-dd 형식으로 변환
+        if let dog = dog {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            _birthDateText = State(initialValue: formatter.string(from: dog.birthDate))
+        } else {
+            _birthDateText = State(initialValue: "")
+        }
+
         _weight = State(initialValue: dog != nil ? String(format: "%.1f", dog!.weight) : "")
         _gender = State(initialValue: dog?.gender ?? .male)
         _notes = State(initialValue: dog?.notes ?? "")
         _profileImageData = State(initialValue: dog?.profileImageData)
+    }
+
+    /// 생년월일 텍스트를 Date로 파싱 (yyyy, yyyy-mm, yyyy-mm-dd 지원)
+    private func parseBirthDate(_ text: String) -> Date? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+
+        // yyyy-mm-dd 형식
+        if trimmed.count == 10 && trimmed.contains("-") {
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.date(from: trimmed)
+        }
+
+        // yyyy-mm 형식 (일은 1일로 설정)
+        if trimmed.count == 7 && trimmed.contains("-") {
+            formatter.dateFormat = "yyyy-MM"
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+
+        // yyyy 형식 (월은 1월, 일은 1일로 설정)
+        if trimmed.count == 4, let year = Int(trimmed), year >= 1990 && year <= Calendar.current.component(.year, from: Date()) {
+            formatter.dateFormat = "yyyy"
+            return formatter.date(from: trimmed)
+        }
+
+        return nil
+    }
+
+    /// 입력값 유효성 검사
+    private var isValidBirthDate: Bool {
+        guard !birthDateText.isEmpty else { return true } // 빈 값은 저장 시 체크
+        return parseBirthDate(birthDateText) != nil
+    }
+
+    /// 저장 가능 여부
+    private var canSave: Bool {
+        !name.isEmpty && !breed.isEmpty && !weight.isEmpty && !birthDateText.isEmpty && isValidBirthDate
     }
 
     var body: some View {
@@ -210,7 +262,7 @@ struct DogFormView: View {
                                         )
                                 } else {
                                     Circle()
-                                        .fill(AppTheme.secondary.opacity(0.2))
+                                        .fill(AppTheme.cardBackground)
                                         .frame(width: 120, height: 120)
                                         .overlay(
                                             VStack(spacing: 8) {
@@ -219,7 +271,7 @@ struct DogFormView: View {
                                                     .foregroundColor(AppTheme.primary)
                                                 Text("사진 추가")
                                                     .font(.caption)
-                                                    .foregroundColor(AppTheme.textSecondary)
+                                                    .foregroundColor(.black.opacity(0.6))
                                             }
                                         )
                                 }
@@ -243,30 +295,104 @@ struct DogFormView: View {
                     .listRowBackground(Color.clear)
                 }
 
-                Section("기본 정보") {
+                Section {
                     TextField("이름", text: $name)
+                        .foregroundColor(.black)
+                        .listRowBackground(AppTheme.cardBackground)
                     TextField("품종", text: $breed)
-                    DatePicker("생년월일", selection: $birthDate, displayedComponents: .date)
+                        .foregroundColor(.black)
+                        .listRowBackground(AppTheme.cardBackground)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("생년월일")
+                                .foregroundColor(.black)
+                            Spacer()
+                            TextField("yyyy-mm-dd", text: $birthDateText)
+                                .foregroundColor(.black)
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.numbersAndPunctuation)
+                                .autocapitalization(.none)
+                                .onChange(of: birthDateText) { _, newValue in
+                                    // 자동으로 하이픈 추가
+                                    var formatted = newValue.filter { $0.isNumber || $0 == "-" }
+
+                                    // 숫자만 추출
+                                    let numbers = formatted.filter { $0.isNumber }
+
+                                    if numbers.count >= 4 && !formatted.contains("-") {
+                                        // yyyy 다음에 자동으로 하이픈 추가
+                                        let year = String(numbers.prefix(4))
+                                        let rest = String(numbers.dropFirst(4))
+                                        if rest.isEmpty {
+                                            formatted = year
+                                        } else if rest.count <= 2 {
+                                            formatted = "\(year)-\(rest)"
+                                        } else {
+                                            let month = String(rest.prefix(2))
+                                            let day = String(rest.dropFirst(2).prefix(2))
+                                            if day.isEmpty {
+                                                formatted = "\(year)-\(month)"
+                                            } else {
+                                                formatted = "\(year)-\(month)-\(day)"
+                                            }
+                                        }
+                                    }
+
+                                    if formatted != birthDateText && formatted.count <= 10 {
+                                        birthDateText = formatted
+                                    }
+                                }
+                        }
+
+                        if !birthDateText.isEmpty && !isValidBirthDate {
+                            Text("형식: yyyy 또는 yyyy-mm 또는 yyyy-mm-dd")
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.danger)
+                        } else if birthDateText.isEmpty {
+                            Text("예: 2020 또는 2020-05 또는 2020-05-15")
+                                .font(.caption2)
+                                .foregroundColor(.black.opacity(0.4))
+                        }
+                    }
+                    .listRowBackground(AppTheme.cardBackground)
+                } header: {
+                    Text("기본 정보")
+                        .foregroundColor(.black.opacity(0.7))
                 }
 
-                Section("상세 정보") {
+                Section {
                     HStack {
                         TextField("몸무게", text: $weight)
                             .keyboardType(.decimalPad)
+                            .foregroundColor(.black)
                         Text("kg")
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(.black.opacity(0.6))
                     }
+                    .listRowBackground(AppTheme.cardBackground)
 
                     Picker("성별", selection: $gender) {
                         ForEach(Dog.Gender.allCases, id: \.self) { gender in
                             Text(gender.rawValue).tag(gender)
                         }
                     }
+                    .foregroundColor(.black)
+                    .listRowBackground(AppTheme.cardBackground)
+                } header: {
+                    Text("상세 정보")
+                        .foregroundColor(.black.opacity(0.7))
                 }
 
-                Section("메모") {
+                Section {
                     TextEditor(text: $notes)
                         .frame(height: 100)
+                        .foregroundColor(.black)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .listRowBackground(AppTheme.cardBackground)
+                } header: {
+                    Text("메모")
+                        .foregroundColor(.black.opacity(0.7))
                 }
 
                 // 사진 삭제 버튼 (사진이 있을 때만)
@@ -282,6 +408,7 @@ struct DogFormView: View {
                                 Spacer()
                             }
                         }
+                        .listRowBackground(AppTheme.cardBackground)
                     }
                 }
             }
@@ -289,6 +416,9 @@ struct DogFormView: View {
             .background(AppTheme.background)
             .navigationTitle(existingDog == nil ? "반려견 추가" : "반려견 수정")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") {
@@ -301,8 +431,8 @@ struct DogFormView: View {
                     Button("저장") {
                         saveDog()
                     }
-                    .foregroundColor(AppTheme.primary)
-                    .disabled(name.isEmpty || breed.isEmpty || weight.isEmpty)
+                    .foregroundColor(canSave ? AppTheme.primary : AppTheme.primary.opacity(0.5))
+                    .disabled(!canSave)
                 }
             }
             .onChange(of: selectedPhoto) { _, newItem in
@@ -342,7 +472,8 @@ struct DogFormView: View {
     }
 
     private func saveDog() {
-        guard let weightValue = Double(weight) else { return }
+        guard let weightValue = Double(weight),
+              let birthDate = parseBirthDate(birthDateText) else { return }
 
         let dog = Dog(
             id: existingDog?.id ?? UUID(),

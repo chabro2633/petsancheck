@@ -14,8 +14,10 @@ class HospitalService {
 
     private init() {}
 
-    // 카카오 REST API 키
-    private let apiKey = "9e8b18c55ec9d4441317124e6ecf84b6"
+    // 카카오 REST API 키 (Info.plist에서 로드)
+    private var apiKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "KAKAO_REST_API_KEY") as? String ?? ""
+    }
     private let baseURL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 
     /// 현재 위치 근처 동물병원 검색

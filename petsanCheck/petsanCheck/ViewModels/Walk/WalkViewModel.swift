@@ -44,6 +44,13 @@ class WalkViewModel: ObservableObject {
         self.init(locationManager: LocationManager())
     }
 
+    deinit {
+        // Timer 메모리 누수 방지
+        timer?.invalidate()
+        timer = nil
+        cancellables.removeAll()
+    }
+
     private func setupBindings() {
         // 위치 업데이트 구독 - 실시간 현재 위치 표시용
         locationManager.$location

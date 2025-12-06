@@ -35,27 +35,28 @@ struct WalkHistoryView: View {
             }
 
             // 이번 주 산책 기록 목록
-            Section("이번 주 산책 기록") {
+            Section {
                 if viewModel.weeklyRecords.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "figure.walk.circle")
                             .font(.system(size: 50))
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(.black.opacity(0.4))
                         Text("이번 주 산책 기록이 없습니다")
                             .font(.headline)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(.black.opacity(0.6))
                         Text("산책을 시작해보세요!")
                             .font(.subheadline)
-                            .foregroundColor(AppTheme.textSecondary.opacity(0.7))
+                            .foregroundColor(.black.opacity(0.4))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
-                    .listRowBackground(Color.clear)
+                    .listRowBackground(AppTheme.cardBackground)
                 } else {
                     ForEach(viewModel.weeklyRecords) { record in
                         NavigationLink(destination: WalkRecordDetailView(record: record)) {
                             WalkRecordRow(record: record)
                         }
+                        .listRowBackground(AppTheme.cardBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 viewModel.deleteRecord(record)
@@ -65,11 +66,18 @@ struct WalkHistoryView: View {
                         }
                     }
                 }
+            } header: {
+                Text("이번 주 산책 기록")
+                    .foregroundColor(.black)
+                    .font(.headline)
             }
         }
         .scrollContentBackground(.hidden)
         .background(AppTheme.background)
         .navigationTitle("산책 기록")
+        .toolbarBackground(AppTheme.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .refreshable {
             viewModel.loadWalkRecords()
         }
@@ -86,11 +94,11 @@ struct WeeklyHeaderView: View {
                 Text("이번 주")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(.black)
 
                 Text(viewModel.weekRangeText)
                     .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(.black.opacity(0.7))
             }
 
             Spacer()
@@ -202,7 +210,7 @@ struct DayCell: View {
             Text(dayName)
                 .font(.caption2)
                 .fontWeight(.medium)
-                .foregroundColor(isToday ? AppTheme.primary : AppTheme.textSecondary)
+                .foregroundColor(isToday ? AppTheme.primary : .black.opacity(0.6))
 
             // 날짜
             ZStack {
@@ -215,7 +223,7 @@ struct DayCell: View {
                 Text(dayNumber)
                     .font(.caption)
                     .fontWeight(isToday ? .bold : .regular)
-                    .foregroundColor(isToday ? .white : (isFuture ? AppTheme.textSecondary.opacity(0.5) : AppTheme.textPrimary))
+                    .foregroundColor(isToday ? .white : (isFuture ? .black.opacity(0.3) : .black))
             }
 
             // 산책 표시
@@ -238,12 +246,12 @@ struct DayCell: View {
                     // 거리
                     Text(String(format: "%.1f", distance))
                         .font(.system(size: 8))
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(.black.opacity(0.6))
                 }
             } else if !isFuture {
                 Text("-")
                     .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary.opacity(0.3))
+                    .foregroundColor(.black.opacity(0.2))
             }
         }
         .frame(maxWidth: .infinity)
@@ -312,11 +320,11 @@ struct StatBox: View {
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(.black)
 
             Text(title)
                 .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
+                .foregroundColor(.black.opacity(0.7))
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -336,7 +344,7 @@ struct WalkRecordRow: View {
                 // 날짜 (YYYY-MM-DD 형식)
                 Text(record.dateString)
                     .font(.headline)
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(.black)
 
                 Spacer()
 
@@ -351,7 +359,7 @@ struct WalkRecordRow: View {
                 } else {
                     Text(record.timeString)
                         .font(.caption)
-                        .foregroundColor(AppTheme.textSecondary)
+                        .foregroundColor(.black.opacity(0.6))
                 }
             }
 
@@ -392,12 +400,12 @@ struct WalkRecordRow: View {
                 )
             }
             .font(.caption)
-            .foregroundColor(AppTheme.textSecondary)
+            .foregroundColor(.black.opacity(0.6))
 
             if let notes = record.notes {
                 Text(notes)
                     .font(.caption)
-                    .foregroundColor(AppTheme.textSecondary)
+                    .foregroundColor(.black.opacity(0.6))
                     .padding(.top, 4)
             }
         }
