@@ -10,7 +10,6 @@ import CoreLocation
 import Combine
 
 /// 위치 추적 및 관리를 담당하는 서비스
-@MainActor
 class LocationManager: NSObject, ObservableObject {
     @Published var location: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus
@@ -127,13 +126,27 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.distanceFilter = 3.0
 
-        // 백그라운드 위치 업데이트 활성화
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true  // 상태바에 위치 아이콘 표시
-
-        print("[Location] 백그라운드 위치 추적 활성화")
+        // 백그라운드 위치 업데이트 활성화 (권한 + Info.plist 설정 모두 확인)
+        if authorizationStatus == .authorizedAlways && isBackgroundLocationEnabled {
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.showsBackgroundLocationIndicator = true  // 상태바에 위치 아이콘 표시
+            print("[Location] 백그라운드 위치 추적 활성화")
+        } else {
+            print("[Location] 백그라운드 권한 없음 또는 설정 미완료 - 포그라운드만 추적")
+        }
 
         startUpdatingLocation()
+    }
+
+    /// Info.plist에 백그라운드 위치 모드가 설정되어 있는지 확인
+    private var isBackgroundLocationEnabled: Bool {
+        guard let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] else {
+            print("[Location] UIBackgroundModes not found in Info.plist")
+            return false
+        }
+        let hasLocation = backgroundModes.contains("location")
+        print("[Location] UIBackgroundModes: \(backgroundModes), hasLocation: \(hasLocation)")
+        return hasLocation
     }
 
     /// 산책 추적 중지
@@ -223,99 +236,93 @@ class LocationManager: NSObject, ObservableObject {
 
 // MARK: - CLLocationManagerDelegate
 extension LocationManager: CLLocationManagerDelegate {
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in
-            let newStatus = manager.authorizationStatus
-            print("[Location] 권한 상태 변경: \(authorizationStatus.rawValue) → \(newStatus.rawValue)")
-            authorizationStatus = newStatus
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let newStatus = manager.authorizationStatus
+        print("[Location] 권한 상태 변경: \(authorizationStatus.rawValue) → \(newStatus.rawValue)")
+        authorizationStatus = newStatus
 
-            if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
-                print("[Location] 권한 허용됨 - 위치 업데이트 시작")
-                useImmediateCachedLocation()
-                locationManager.desiredAccuracy = kCLLocationAccuracyBest
-                locationManager.distanceFilter = kCLDistanceFilterNone
-                locationManager.startUpdatingLocation()
-            } else if newStatus == .denied || newStatus == .restricted {
-                print("[Location] 권한 거부됨")
-                error = .permissionDenied
-            }
+        if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
+            print("[Location] 권한 허용됨 - 위치 업데이트 시작")
+            useImmediateCachedLocation()
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.distanceFilter = kCLDistanceFilterNone
+            locationManager.startUpdatingLocation()
+        } else if newStatus == .denied || newStatus == .restricted {
+            print("[Location] 권한 거부됨")
+            error = .permissionDenied
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        Task { @MainActor in
-            print("[Location] didUpdateLocations 호출됨 - 위치 개수: \(locations.count)")
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        print("[Location] didUpdateLocations 호출됨 - 위치 개수: \(locations.count)")
 
-            // 가장 최근 위치 사용
-            guard let newLocation = locations.last else {
-                print("[Location] 위치 배열이 비어있음")
+        // 가장 최근 위치 사용
+        guard let newLocation = locations.last else {
+            print("[Location] 위치 배열이 비어있음")
+            return
+        }
+
+        let age = -newLocation.timestamp.timeIntervalSinceNow
+        print("[Location] 새 위치 수신: \(String(format: "%.6f, %.6f", newLocation.coordinate.latitude, newLocation.coordinate.longitude))")
+        print("[Location] - 정확도: \(String(format: "%.0f", newLocation.horizontalAccuracy))m, 나이: \(String(format: "%.1f", age))초")
+
+        // 유효한 위치인지 확인 (정확도가 음수면 무효)
+        guard newLocation.horizontalAccuracy >= 0 else {
+            print("[Location] 무효한 위치 (정확도 음수)")
+            return
+        }
+
+        // 너무 오래된 위치는 건너뜀 (5분 이상)
+        guard age < 300 else {
+            print("[Location] 너무 오래된 위치 (5분 초과)")
+            return
+        }
+
+        // 위치 업데이트 - 항상 최신 위치로 업데이트
+        let previousLocation = self.location
+        self.location = newLocation
+        isLocating = false
+
+        if previousLocation == nil {
+            print("[Location] ✅ 첫 위치 설정 완료!")
+        } else {
+            print("[Location] ✅ 위치 업데이트 완료")
+        }
+
+        // 추적 중이면 엄격한 기준 적용
+        if isTracking {
+            guard isValidForTracking(newLocation) else {
+                print("[Location] 추적용 유효성 검사 실패")
                 return
             }
 
-            let age = -newLocation.timestamp.timeIntervalSinceNow
-            print("[Location] 새 위치 수신: \(String(format: "%.6f, %.6f", newLocation.coordinate.latitude, newLocation.coordinate.longitude))")
-            print("[Location] - 정확도: \(String(format: "%.0f", newLocation.horizontalAccuracy))m, 나이: \(String(format: "%.1f", age))초")
+            self.lastValidLocation = newLocation
 
-            // 유효한 위치인지 확인 (정확도가 음수면 무효)
-            guard newLocation.horizontalAccuracy >= 0 else {
-                print("[Location] 무효한 위치 (정확도 음수)")
-                return
-            }
-
-            // 너무 오래된 위치는 건너뜀 (5분 이상)
-            guard age < 300 else {
-                print("[Location] 너무 오래된 위치 (5분 초과)")
-                return
-            }
-
-            // 위치 업데이트 - 항상 최신 위치로 업데이트
-            let previousLocation = self.location
-            self.location = newLocation
-            isLocating = false
-
-            if previousLocation == nil {
-                print("[Location] ✅ 첫 위치 설정 완료!")
-            } else {
-                print("[Location] ✅ 위치 업데이트 완료")
-            }
-
-            // 추적 중이면 엄격한 기준 적용
-            if isTracking {
-                guard isValidForTracking(newLocation) else {
-                    print("[Location] 추적용 유효성 검사 실패")
-                    return
-                }
-
-                self.lastValidLocation = newLocation
-
-                if let lastTracked = trackingLocations.last {
-                    let distance = newLocation.distance(from: lastTracked)
-                    if distance >= 2.0 {
-                        trackingLocations.append(newLocation)
-                        print("[Location] 경로에 추가 (거리: \(String(format: "%.1f", distance))m)")
-                    }
-                } else {
+            if let lastTracked = trackingLocations.last {
+                let distance = newLocation.distance(from: lastTracked)
+                if distance >= 2.0 {
                     trackingLocations.append(newLocation)
-                    print("[Location] 첫 경로 포인트 추가")
+                    print("[Location] 경로에 추가 (거리: \(String(format: "%.1f", distance))m)")
                 }
+            } else {
+                trackingLocations.append(newLocation)
+                print("[Location] 첫 경로 포인트 추가")
             }
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Task { @MainActor in
-            print("[Location] 오류: \(error.localizedDescription)")
-            isLocating = false
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("[Location] 오류: \(error.localizedDescription)")
+        isLocating = false
 
-            if let clError = error as? CLError {
-                switch clError.code {
-                case .denied:
-                    self.error = .permissionDenied
-                case .locationUnknown:
-                    self.error = .locationUnavailable
-                default:
-                    self.error = .unknown(clError.localizedDescription)
-                }
+        if let clError = error as? CLError {
+            switch clError.code {
+            case .denied:
+                self.error = .permissionDenied
+            case .locationUnknown:
+                self.error = .locationUnavailable
+            default:
+                self.error = .unknown(clError.localizedDescription)
             }
         }
     }

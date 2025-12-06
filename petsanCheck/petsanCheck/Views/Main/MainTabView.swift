@@ -29,10 +29,10 @@ struct MainTabView: View {
                     }
                     .tag(1)
 
-                // 피드 탭
-                FeedView()
+                // 랭킹 탭
+                RankingView()
                     .tabItem {
-                        Label("피드", systemImage: "photo.on.rectangle")
+                        Label("랭킹", systemImage: "trophy.fill")
                     }
                     .tag(2)
 

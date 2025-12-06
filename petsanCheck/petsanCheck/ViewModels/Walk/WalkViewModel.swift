@@ -40,15 +40,11 @@ class WalkViewModel: ObservableObject {
         currentSession?.locations ?? []
     }
 
-    private init(locationManager: LocationManager) {
-        self.locationManager = locationManager
+    private init() {
+        self.locationManager = LocationManager()
 
         // LocationManager의 변경사항 구독
         setupBindings()
-    }
-
-    private convenience init() {
-        self.init(locationManager: LocationManager())
     }
 
     deinit {
@@ -167,6 +163,9 @@ class WalkViewModel: ObservableObject {
         // 세션을 CoreData에 저장
         CoreDataService.shared.createWalkRecord(session, dogId: selectedDogId)
 
+        // Firebase에 누적 통계 업로드
+        syncStatsToFirebase()
+
         // 세션 초기화
         currentSession = nil
         isPaused = false
@@ -177,6 +176,36 @@ class WalkViewModel: ObservableObject {
 
         // 완료 팝업 표시
         showCompletionPopup = true
+    }
+
+    /// Firebase에 누적 통계 동기화
+    private func syncStatsToFirebase() {
+        let coreDataService = CoreDataService.shared
+        let walkRecords = coreDataService.fetchAllWalkRecords()
+
+        let totalDistance = walkRecords.reduce(into: 0.0) { $0 += $1.totalDistance }
+        let totalWalkCount = walkRecords.count
+        let totalDuration = walkRecords.reduce(into: 0.0) { $0 += $1.duration }
+
+        // 반려견 정보 가져오기
+        guard let dog = coreDataService.fetchAllDogs().first else { return }
+
+        Task {
+            do {
+                try await FirebaseService.shared.saveUserStats(
+                    userName: "나",
+                    petName: dog.name,
+                    petBreed: dog.breed,
+                    totalDistance: totalDistance,
+                    totalWalkCount: totalWalkCount,
+                    totalDuration: totalDuration,
+                    profileImageData: dog.profileImageData
+                )
+                print("[Walk] Firebase 통계 동기화 완료 - 총 거리: \(totalDistance)m, 횟수: \(totalWalkCount)")
+            } catch {
+                print("[Walk] Firebase 동기화 실패: \(error.localizedDescription)")
+            }
+        }
     }
 
     /// 완료 팝업 닫기

@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6504C8CB2EE3FF0C00C8FE37 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1312EDB500000C8FE37 /* FirebaseAuth */; };
+		6504C8CC2EE3FF0C00C8FE37 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1322EDB500000C8FE37 /* FirebaseFirestore */; };
+		6504C8CD2EE3FF1000C8FE37 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1332EDB510000C8FE37 /* KakaoSDKCommon */; };
+		6504C8CE2EE3FF1000C8FE37 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1342EDB510000C8FE37 /* KakaoSDKAuth */; };
+		6504C8CF2EE3FF1000C8FE37 /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1352EDB510000C8FE37 /* KakaoSDKUser */; };
+		6504C8D02EE3FF1000C8FE37 /* KakaoSDKFriend in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1362EDB510000C8FE37 /* KakaoSDKFriend */; };
+		6504C8D12EE3FF1000C8FE37 /* KakaoSDKTalk in Frameworks */ = {isa = PBXBuildFile; productRef = 6504C1372EDB510000C8FE37 /* KakaoSDKTalk */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		6504C11F2EDB3B2D00C8FE37 /* petsanCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = petsanCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +33,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6504C8CC2EE3FF0C00C8FE37 /* FirebaseFirestore in Frameworks */,
+				6504C8CB2EE3FF0C00C8FE37 /* FirebaseAuth in Frameworks */,
+				6504C8CD2EE3FF1000C8FE37 /* KakaoSDKCommon in Frameworks */,
+				6504C8CE2EE3FF1000C8FE37 /* KakaoSDKAuth in Frameworks */,
+				6504C8CF2EE3FF1000C8FE37 /* KakaoSDKUser in Frameworks */,
+				6504C8D02EE3FF1000C8FE37 /* KakaoSDKFriend in Frameworks */,
+				6504C8D12EE3FF1000C8FE37 /* KakaoSDKTalk in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +82,13 @@
 			);
 			name = petsanCheck;
 			packageProductDependencies = (
+				6504C1312EDB500000C8FE37 /* FirebaseAuth */,
+				6504C1322EDB500000C8FE37 /* FirebaseFirestore */,
+				6504C1332EDB510000C8FE37 /* KakaoSDKCommon */,
+				6504C1342EDB510000C8FE37 /* KakaoSDKAuth */,
+				6504C1352EDB510000C8FE37 /* KakaoSDKUser */,
+				6504C1362EDB510000C8FE37 /* KakaoSDKFriend */,
+				6504C1372EDB510000C8FE37 /* KakaoSDKTalk */,
 			);
 			productName = petsanCheck;
 			productReference = 6504C11F2EDB3B2D00C8FE37 /* petsanCheck.app */;
@@ -94,6 +118,10 @@
 			);
 			mainGroup = 6504C1162EDB3B2D00C8FE37;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6504C1302EDB500000C8FE37 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6504C1202EDB3B2D00C8FE37 /* Products */;
 			projectDirPath = "";
@@ -255,16 +283,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = S9N98RT3Q3;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSApplicationQueriesSchemes = "$(inherited) kakaomap";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "산책 중 백그라운드에서도 경로를 추적하기 위해 위치 권한이 필요합니다.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "산책 중 경로를 추적하고 현재 위치의 날씨 정보를 제공하기 위해 위치 권한이 필요합니다.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIBackgroundModes = location;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -291,16 +310,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = S9N98RT3Q3;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSApplicationQueriesSchemes = "$(inherited) kakaomap";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "산책 중 백그라운드에서도 경로를 추적하기 위해 위치 권한이 필요합니다.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "산책 중 경로를 추적하고 현재 위치의 날씨 정보를 제공하기 위해 위치 권한이 필요합니다.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIBackgroundModes = location;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -340,6 +350,63 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6504C1302EDB500000C8FE37 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+		6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6504C1312EDB500000C8FE37 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1302EDB500000C8FE37 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		6504C1322EDB500000C8FE37 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1302EDB500000C8FE37 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		6504C1332EDB510000C8FE37 /* KakaoSDKCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKCommon;
+		};
+		6504C1342EDB510000C8FE37 /* KakaoSDKAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKAuth;
+		};
+		6504C1352EDB510000C8FE37 /* KakaoSDKUser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKUser;
+		};
+		6504C1362EDB510000C8FE37 /* KakaoSDKFriend */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKFriend;
+		};
+		6504C1372EDB510000C8FE37 /* KakaoSDKTalk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6504C1382EDB510000C8FE37 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKTalk;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6504C1172EDB3B2D00C8FE37 /* Project object */;
 }
