@@ -17,36 +17,50 @@ class LocationManager: NSObject, ObservableObject {
     @Published var isTracking = false
     @Published var trackingLocations: [CLLocation] = []
     @Published var error: LocationError?
-    @Published var isLocating = false  // 위치 찾는 중 표시
+    @Published var isLocating = false
 
     private let locationManager = CLLocationManager()
     private var cancellables = Set<AnyCancellable>()
     private var lastValidLocation: CLLocation?
-    private var initialLocationTimer: Timer?
 
-    // 위치 필터링을 위한 설정값 (추적용 - 엄격함)
-    private let minimumHorizontalAccuracyForTracking: CLLocationAccuracy = 20.0  // 추적용: 20m
-    // 초기 위치용 - 더 관대함 (빠른 표시를 위해)
-    private let minimumHorizontalAccuracyForInitial: CLLocationAccuracy = 500.0  // 초기: 500m까지 허용 (더 빠른 표시)
+    // 위치 필터링 설정값
+    private let minimumHorizontalAccuracyForTracking: CLLocationAccuracy = 20.0
+    private let minimumHorizontalAccuracyForInitial: CLLocationAccuracy = 1000.0  // 1km까지 허용 (더 빠른 초기 표시)
     private let minimumDistanceFilter: CLLocationDistance = 5.0
-    private let maximumLocationAge: TimeInterval = 60.0  // 초기: 60초까지 허용 (더 오래된 캐시 사용)
-    private let maximumLocationAgeForTracking: TimeInterval = 10.0  // 추적: 10초
+    private let maximumLocationAge: TimeInterval = 120.0  // 2분까지 캐시 허용
+    private let maximumLocationAgeForTracking: TimeInterval = 10.0
 
     override init() {
         self.authorizationStatus = locationManager.authorizationStatus
         super.init()
 
         locationManager.delegate = self
-
-        // 빠른 초기 위치를 위해 Best 대신 NearestTenMeters 사용 (더 빠름)
-        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        locationManager.distanceFilter = minimumDistanceFilter
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest  // 최고 정확도로 시작
+        locationManager.distanceFilter = kCLDistanceFilterNone  // 모든 위치 업데이트 수신
         locationManager.activityType = .fitness
         locationManager.pausesLocationUpdatesAutomatically = false
 
-        // 권한이 이미 있으면 즉시 위치 요청 시작
+        print("[Location] 초기화 완료 - 권한 상태: \(authorizationStatus.rawValue)")
+
+        // 권한이 있으면 즉시 캐시된 위치 사용 및 위치 업데이트 시작
         if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            startQuickLocationFetch()
+            useImmediateCachedLocation()
+            // 즉시 위치 업데이트 시작
+            locationManager.startUpdatingLocation()
+            print("[Location] 자동 위치 업데이트 시작")
+        }
+    }
+
+    /// 즉시 캐시된 위치 사용 (가장 빠름)
+    private func useImmediateCachedLocation() {
+        // 시스템에 캐시된 위치가 있으면 즉시 사용
+        if let cachedLocation = locationManager.location {
+            let age = -cachedLocation.timestamp.timeIntervalSinceNow
+            // 5분 이내 캐시는 무조건 사용 (빠른 표시 우선)
+            if age < 300 {
+                self.location = cachedLocation
+                print("[Location] 즉시 캐시 사용: \(String(format: "%.4f, %.4f", cachedLocation.coordinate.latitude, cachedLocation.coordinate.longitude)) (나이: \(String(format: "%.0f", age))초)")
+            }
         }
     }
 
@@ -55,36 +69,33 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.requestWhenInUseAuthorization()
     }
 
-    /// 빠른 초기 위치 가져오기 (앱 시작 시)
+    /// 빠른 초기 위치 가져오기
     func startQuickLocationFetch() {
+        print("[Location] startQuickLocationFetch 호출 - 현재 권한: \(authorizationStatus.rawValue)")
+
         guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+            print("[Location] 권한 없음 - 권한 요청")
+            requestPermission()
             return
         }
 
-        isLocating = true
+        // 1. 먼저 캐시된 위치 즉시 사용
+        useImmediateCachedLocation()
 
-        // 캐시된 위치가 있으면 먼저 사용 (60초 이내면 바로 사용)
-        if let cachedLocation = locationManager.location,
-           -cachedLocation.timestamp.timeIntervalSinceNow < 60 {
-            self.location = cachedLocation
+        // 이미 위치가 있으면 로딩 표시 안함
+        if location != nil {
             isLocating = false
-            print("[Location] 캐시된 위치 즉시 사용: \(cachedLocation.coordinate) (정확도: \(String(format: "%.0f", cachedLocation.horizontalAccuracy))m)")
-            // 캐시 사용 후에도 더 정확한 위치를 백그라운드에서 찾음
+            print("[Location] 이미 위치 있음: \(String(format: "%.6f, %.6f", location!.coordinate.latitude, location!.coordinate.longitude))")
+        } else {
+            isLocating = true
+            print("[Location] 위치 없음 - 새로 요청")
         }
 
-        // 즉시 위치 업데이트 시작
+        // 2. 항상 위치 업데이트 시작 (더 정확한 위치를 위해)
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = kCLDistanceFilterNone
         locationManager.startUpdatingLocation()
-
-        // 1.5초 후에도 위치를 못 찾으면 정확도 낮춰서 재시도 (더 빠른 폴백)
-        initialLocationTimer?.invalidate()
-        initialLocationTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
-            Task { @MainActor in
-                if self?.location == nil {
-                    print("[Location] 1.5초 내 위치 못찾음 - 정확도 낮춤")
-                    self?.locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
-                }
-            }
-        }
+        print("[Location] 위치 업데이트 요청 완료")
     }
 
     /// 위치 업데이트 시작
@@ -112,9 +123,9 @@ class LocationManager: NSObject, ObservableObject {
         lastValidLocation = nil
         isTracking = true
 
-        // 고정밀 추적 모드로 전환
+        // 고정밀 추적 모드
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        locationManager.distanceFilter = 3.0  // 추적 중에는 3미터마다 업데이트
+        locationManager.distanceFilter = 3.0
 
         startUpdatingLocation()
     }
@@ -124,23 +135,19 @@ class LocationManager: NSObject, ObservableObject {
         guard isTracking else { return }
 
         isTracking = false
-
-        // 일반 모드로 복귀
-        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager.distanceFilter = minimumDistanceFilter
 
         stopUpdatingLocation()
     }
 
-    /// 위치가 초기 표시용으로 유효한지 (더 관대함)
+    /// 초기 표시용 유효성 검사 (관대함)
     private func isValidForInitialDisplay(_ location: CLLocation) -> Bool {
-        // 정확도 100m 이내
         guard location.horizontalAccuracy >= 0 &&
               location.horizontalAccuracy <= minimumHorizontalAccuracyForInitial else {
             return false
         }
 
-        // 30초 이내 위치
         let locationAge = -location.timestamp.timeIntervalSinceNow
         guard locationAge <= maximumLocationAge else {
             return false
@@ -149,34 +156,25 @@ class LocationManager: NSObject, ObservableObject {
         return true
     }
 
-    /// 위치가 추적용으로 유효한지 (엄격함)
+    /// 추적용 유효성 검사 (엄격함)
     private func isValidForTracking(_ location: CLLocation) -> Bool {
-        // 1. 정확도 체크 - 수평 정확도가 너무 낮으면 무시
         guard location.horizontalAccuracy >= 0 &&
               location.horizontalAccuracy <= minimumHorizontalAccuracyForTracking else {
-            print("[Location] 정확도 부족: \(location.horizontalAccuracy)m")
             return false
         }
 
-        // 2. 위치 나이 체크 - 너무 오래된 위치는 무시
         let locationAge = -location.timestamp.timeIntervalSinceNow
         guard locationAge <= maximumLocationAgeForTracking else {
-            print("[Location] 오래된 위치: \(locationAge)초 전")
             return false
         }
 
-        // 3. 이전 위치와 비교하여 비정상적인 이동 감지
         if let lastLocation = lastValidLocation {
             let distance = location.distance(from: lastLocation)
             let timeDiff = location.timestamp.timeIntervalSince(lastLocation.timestamp)
 
-            // 시간 간격이 0보다 클 때만 속도 계산
             if timeDiff > 0 {
-                let speed = distance / timeDiff  // m/s
-
-                // 비현실적인 속도 (시속 50km 이상)는 무시
-                if speed > 13.9 {
-                    print("[Location] 비정상 속도: \(speed * 3.6)km/h")
+                let speed = distance / timeDiff
+                if speed > 13.9 {  // 50km/h 이상은 무시
                     return false
                 }
             }
@@ -185,14 +183,7 @@ class LocationManager: NSObject, ObservableObject {
         return true
     }
 
-    /// 위치 필터링 및 스무딩 적용
-    private func processLocation(_ location: CLLocation) -> CLLocation {
-        // 칼만 필터 또는 간단한 스무딩 적용 가능
-        // 현재는 유효한 위치만 반환
-        return location
-    }
-
-    /// 총 이동 거리 계산 (미터)
+    /// 총 이동 거리 (미터)
     var totalDistance: Double {
         guard trackingLocations.count > 1 else { return 0 }
 
@@ -203,7 +194,7 @@ class LocationManager: NSObject, ObservableObject {
         return distance
     }
 
-    /// 평균 속도 계산 (km/h)
+    /// 평균 속도 (km/h)
     var averageSpeed: Double {
         guard trackingLocations.count > 1,
               let firstTime = trackingLocations.first?.timestamp,
@@ -211,11 +202,10 @@ class LocationManager: NSObject, ObservableObject {
             return 0
         }
 
-        let timeInterval = lastTime.timeIntervalSince(firstTime) / 3600 // 시간 단위로 변환
+        let timeInterval = lastTime.timeIntervalSince(firstTime) / 3600
         guard timeInterval > 0 else { return 0 }
 
-        let distanceKm = totalDistance / 1000
-        return distanceKm / timeInterval
+        return (totalDistance / 1000) / timeInterval
     }
 }
 
@@ -223,52 +213,78 @@ class LocationManager: NSObject, ObservableObject {
 extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
-            authorizationStatus = manager.authorizationStatus
+            let newStatus = manager.authorizationStatus
+            print("[Location] 권한 상태 변경: \(authorizationStatus.rawValue) → \(newStatus.rawValue)")
+            authorizationStatus = newStatus
 
-            // 권한이 허용되면 즉시 위치 업데이트 시작
-            if manager.authorizationStatus == .authorizedWhenInUse ||
-               manager.authorizationStatus == .authorizedAlways {
-                startUpdatingLocation()
+            if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
+                print("[Location] 권한 허용됨 - 위치 업데이트 시작")
+                useImmediateCachedLocation()
+                locationManager.desiredAccuracy = kCLLocationAccuracyBest
+                locationManager.distanceFilter = kCLDistanceFilterNone
+                locationManager.startUpdatingLocation()
+            } else if newStatus == .denied || newStatus == .restricted {
+                print("[Location] 권한 거부됨")
+                error = .permissionDenied
             }
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
-            // 가장 정확한 위치 선택 (여러 위치 중 정확도가 가장 높은 것)
-            let bestLocation = locations.min(by: { $0.horizontalAccuracy < $1.horizontalAccuracy })
+            print("[Location] didUpdateLocations 호출됨 - 위치 개수: \(locations.count)")
 
-            guard let location = bestLocation else { return }
-
-            // 초기 위치 표시용 (더 관대한 기준)
-            if self.location == nil || isValidForInitialDisplay(location) {
-                // 첫 위치이거나 유효한 위치면 바로 표시
-                self.location = location
-                isLocating = false
-                initialLocationTimer?.invalidate()
-                print("[Location] 위치 업데이트: \(String(format: "%.4f", location.coordinate.latitude)), \(String(format: "%.4f", location.coordinate.longitude)) (정확도: \(String(format: "%.0f", location.horizontalAccuracy))m)")
+            // 가장 최근 위치 사용
+            guard let newLocation = locations.last else {
+                print("[Location] 위치 배열이 비어있음")
+                return
             }
 
-            // 추적 중이면 더 엄격한 기준 적용
+            let age = -newLocation.timestamp.timeIntervalSinceNow
+            print("[Location] 새 위치 수신: \(String(format: "%.6f, %.6f", newLocation.coordinate.latitude, newLocation.coordinate.longitude))")
+            print("[Location] - 정확도: \(String(format: "%.0f", newLocation.horizontalAccuracy))m, 나이: \(String(format: "%.1f", age))초")
+
+            // 유효한 위치인지 확인 (정확도가 음수면 무효)
+            guard newLocation.horizontalAccuracy >= 0 else {
+                print("[Location] 무효한 위치 (정확도 음수)")
+                return
+            }
+
+            // 너무 오래된 위치는 건너뜀 (5분 이상)
+            guard age < 300 else {
+                print("[Location] 너무 오래된 위치 (5분 초과)")
+                return
+            }
+
+            // 위치 업데이트 - 항상 최신 위치로 업데이트
+            let previousLocation = self.location
+            self.location = newLocation
+            isLocating = false
+
+            if previousLocation == nil {
+                print("[Location] ✅ 첫 위치 설정 완료!")
+            } else {
+                print("[Location] ✅ 위치 업데이트 완료")
+            }
+
+            // 추적 중이면 엄격한 기준 적용
             if isTracking {
-                guard isValidForTracking(location) else {
+                guard isValidForTracking(newLocation) else {
+                    print("[Location] 추적용 유효성 검사 실패")
                     return
                 }
 
-                let processedLocation = processLocation(location)
-                self.lastValidLocation = processedLocation
+                self.lastValidLocation = newLocation
 
-                // 이전 위치와 최소 거리 이상 떨어져 있을 때만 추가 (노이즈 감소)
                 if let lastTracked = trackingLocations.last {
-                    let distance = processedLocation.distance(from: lastTracked)
-                    if distance >= 2.0 {  // 최소 2미터 이상 이동했을 때만 추가
-                        trackingLocations.append(processedLocation)
-                        print("[Location] 경로 추가: \(trackingLocations.count)개, 거리: \(String(format: "%.1f", distance))m")
+                    let distance = newLocation.distance(from: lastTracked)
+                    if distance >= 2.0 {
+                        trackingLocations.append(newLocation)
+                        print("[Location] 경로에 추가 (거리: \(String(format: "%.1f", distance))m)")
                     }
                 } else {
-                    // 첫 번째 위치는 바로 추가
-                    trackingLocations.append(processedLocation)
-                    print("[Location] 첫 위치 추가")
+                    trackingLocations.append(newLocation)
+                    print("[Location] 첫 경로 포인트 추가")
                 }
             }
         }
@@ -277,13 +293,13 @@ extension LocationManager: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             print("[Location] 오류: \(error.localizedDescription)")
+            isLocating = false
 
             if let clError = error as? CLError {
                 switch clError.code {
                 case .denied:
                     self.error = .permissionDenied
                 case .locationUnknown:
-                    // 위치를 찾을 수 없는 경우 - 재시도
                     self.error = .locationUnavailable
                 default:
                     self.error = .unknown(clError.localizedDescription)
@@ -302,7 +318,7 @@ enum LocationError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "위치 권한이 거부되었습니다. 설정에서 권한을 허용해주세요."
+            return "위치 권한이 거부되었습니다."
         case .locationUnavailable:
             return "현재 위치를 찾을 수 없습니다."
         case .unknown(let message):

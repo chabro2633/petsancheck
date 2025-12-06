@@ -27,10 +27,6 @@ struct KakaoMapView: UIViewRepresentable {
         configuration.defaultWebpagePreferences = preferences
         configuration.allowsInlineMediaPlayback = true
 
-        // CORS 및 외부 리소스 로드 허용
-        configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        configuration.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
-
         // 메시지 핸들러 등록
         configuration.userContentController.add(context.coordinator, name: "markerTapped")
         configuration.userContentController.add(context.coordinator, name: "consoleLog")
@@ -108,22 +104,9 @@ struct KakaoMapView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("[HospitalMap] Page loaded successfully")
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self = self else { return }
                 self.isMapReady = true
-
-                // 초기 위치 설정
-                let lat = self.parent.centerCoordinate.latitude
-                let lng = self.parent.centerCoordinate.longitude
-
-                var script = "if(typeof setCenter === 'function') { setCenter(\(lat), \(lng)); }"
-
-                // 현재 위치 마커
-                if let location = self.parent.currentLocation {
-                    script += "if(typeof setCurrentLocation === 'function') { setCurrentLocation(\(location.latitude), \(location.longitude)); }"
-                }
-
-                webView.evaluateJavaScript(script)
 
                 // 병원 마커 추가
                 self.parent.updateMarkersWithCoordinator(webView, coordinator: self)

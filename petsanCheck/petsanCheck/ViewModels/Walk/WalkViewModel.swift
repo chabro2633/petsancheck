@@ -237,17 +237,37 @@ class WalkViewModel: ObservableObject {
 
     /// 위치 권한 요청 및 위치 업데이트 시작
     func requestLocationUpdate() async {
+        print("[WalkViewModel] requestLocationUpdate 호출 - 권한: \(locationManager.authorizationStatus.rawValue)")
+
         // 권한 확인
         if locationManager.authorizationStatus == .notDetermined {
+            print("[WalkViewModel] 권한 미결정 - 권한 요청")
             locationManager.requestPermission()
-            // 권한 요청 후 잠시 대기
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5초
+            // 권한 요청 후 대기 (최대 2초)
+            for _ in 0..<20 {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1초
+                if locationManager.authorizationStatus != .notDetermined {
+                    break
+                }
+            }
         }
 
         // 위치 업데이트 시작 (추적 중이 아닐 때만)
         if !isTracking && (locationManager.authorizationStatus == .authorizedWhenInUse ||
                            locationManager.authorizationStatus == .authorizedAlways) {
+            print("[WalkViewModel] 위치 업데이트 시작 요청")
             locationManager.startQuickLocationFetch()
+
+            // 위치가 업데이트될 때까지 최대 3초 대기
+            for _ in 0..<30 {
+                if locationManager.location != nil {
+                    print("[WalkViewModel] 위치 확보됨!")
+                    break
+                }
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1초
+            }
+        } else {
+            print("[WalkViewModel] 위치 업데이트 건너뜀 - isTracking: \(isTracking), 권한: \(locationManager.authorizationStatus.rawValue)")
         }
     }
 

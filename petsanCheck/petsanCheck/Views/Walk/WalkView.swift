@@ -14,18 +14,32 @@ struct WalkView: View {
     @StateObject private var profileViewModel = ProfileViewModel()
     @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showDogSelection = false
+    @State private var isMapReady = false
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // 카카오맵
-                WalkMapView(
-                    centerCoordinate: $centerCoordinate,
-                    routeCoordinates: viewModel.routeLocations.map {
-                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                // 카카오맵 - 위치가 준비되면 표시
+                if isMapReady {
+                    WalkMapView(
+                        centerCoordinate: $centerCoordinate,
+                        routeCoordinates: viewModel.routeLocations.map {
+                            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                        }
+                    )
+                    .ignoresSafeArea()
+                } else {
+                    // 위치 로딩 중
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("현재 위치를 찾는 중...")
+                            .font(.subheadline)
+                            .foregroundColor(.black.opacity(0.6))
                     }
-                )
-                .ignoresSafeArea()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppTheme.background)
+                }
 
                 VStack {
                     // 상단 컴팩트 정보 영역
@@ -131,16 +145,41 @@ struct WalkView: View {
             .onChange(of: viewModel.currentLocation) { oldValue, newValue in
                 if let location = newValue {
                     centerCoordinate = location.coordinate
+                    // 위치를 받으면 지도 표시
+                    if !isMapReady {
+                        isMapReady = true
+                    }
                 }
             }
             .onAppear {
+                print("[WalkView] onAppear - 현재 위치: \(viewModel.currentLocation?.coordinate.latitude ?? 0), \(viewModel.currentLocation?.coordinate.longitude ?? 0)")
+
+                // 이미 위치가 있으면 바로 지도 표시
+                if let location = viewModel.currentLocation {
+                    centerCoordinate = location.coordinate
+                    isMapReady = true
+                    print("[WalkView] 이미 위치 있음 - 바로 지도 표시")
+                }
+
                 // 뷰가 나타날 때 위치 업데이트 시작
                 Task {
                     await viewModel.requestLocationUpdate()
 
-                    // 현재 위치로 지도 중심 설정
+                    // 위치가 업데이트되면 지도 중심 설정
                     if let location = viewModel.currentLocation {
                         centerCoordinate = location.coordinate
+                        if !isMapReady {
+                            isMapReady = true
+                        }
+                        print("[WalkView] 위치 업데이트 완료")
+                    }
+                }
+
+                // 3초 후에도 위치를 못 찾으면 기본 위치로 지도 표시
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if !isMapReady {
+                        isMapReady = true
+                        print("[WalkView] 3초 타임아웃 - 기본 위치로 지도 표시")
                     }
                 }
             }
@@ -174,56 +213,114 @@ struct DogInfoBannerSimple: View {
 struct DogSelectionView: View {
     let dogs: [Dog]
     let onSelect: (Dog?) -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button(action: {
-                        onSelect(nil)
-                    }) {
-                        HStack {
+            VStack(spacing: 0) {
+                // 반려견 없이 산책 버튼
+                Button(action: {
+                    onSelect(nil)
+                }) {
+                    HStack {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.primary.opacity(0.15))
+                                .frame(width: 50, height: 50)
                             Image(systemName: "figure.walk")
-                                .foregroundColor(AppTheme.textSecondary)
-                            Text("반려견 없이 산책")
-                                .foregroundColor(AppTheme.textPrimary)
+                                .font(.title2)
+                                .foregroundColor(AppTheme.primary)
                         }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("반려견 없이 산책")
+                                .font(.headline)
+                                .foregroundColor(.black)
+                            Text("혼자 산책하기")
+                                .font(.caption)
+                                .foregroundColor(.black.opacity(0.5))
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.black.opacity(0.3))
                     }
+                    .padding()
+                    .background(AppTheme.cardBackground)
+                    .cornerRadius(12)
                 }
+                .padding(.horizontal)
+                .padding(.top)
 
-                Section("반려견 선택") {
-                    ForEach(dogs) { dog in
-                        Button(action: {
-                            onSelect(dog)
-                        }) {
-                            HStack {
-                                Image(systemName: "pawprint.circle.fill")
-                                    .foregroundColor(AppTheme.primary)
-                                    .font(.title2)
+                // 반려견 목록 헤더
+                HStack {
+                    Text("반려견 선택")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.black.opacity(0.6))
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                .padding(.bottom, 8)
 
-                                VStack(alignment: .leading) {
-                                    Text(dog.name)
-                                        .font(.headline)
-                                        .foregroundColor(AppTheme.textPrimary)
-                                    Text(dog.breed)
-                                        .font(.caption)
-                                        .foregroundColor(AppTheme.textSecondary)
+                // 반려견 목록
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(dogs) { dog in
+                            Button(action: {
+                                onSelect(dog)
+                            }) {
+                                HStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppTheme.primary.opacity(0.15))
+                                            .frame(width: 50, height: 50)
+                                        Image(systemName: "pawprint.fill")
+                                            .font(.title3)
+                                            .foregroundColor(AppTheme.primary)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(dog.name)
+                                            .font(.headline)
+                                            .foregroundColor(.black)
+                                        Text(dog.breed)
+                                            .font(.caption)
+                                            .foregroundColor(.black.opacity(0.5))
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.black.opacity(0.3))
                                 }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(AppTheme.textSecondary)
-                                    .font(.caption)
+                                .padding()
+                                .background(AppTheme.cardBackground)
+                                .cornerRadius(12)
                             }
                         }
                     }
+                    .padding(.horizontal)
                 }
+
+                Spacer()
             }
-            .scrollContentBackground(.hidden)
             .background(AppTheme.background)
             .navigationTitle("산책할 반려견 선택")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("취소") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppTheme.primary)
+                }
+            }
         }
     }
 }

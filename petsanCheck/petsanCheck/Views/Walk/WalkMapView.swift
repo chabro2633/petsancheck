@@ -26,10 +26,6 @@ struct WalkMapView: UIViewRepresentable {
         configuration.defaultWebpagePreferences = preferences
         configuration.allowsInlineMediaPlayback = true
 
-        // CORS 및 외부 리소스 로드 허용
-        configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        configuration.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
-
         // 메시지 핸들러 등록
         configuration.userContentController.add(context.coordinator, name: "consoleLog")
         configuration.userContentController.add(context.coordinator, name: "mapReady")
@@ -47,7 +43,7 @@ struct WalkMapView: UIViewRepresentable {
             webView.isInspectable = true
         }
 
-        // GitHub Pages URL에서 로드 (CORS 문제 해결)
+        // GitHub Pages URL에서 로드
         let urlString = "https://chabro2633.github.io/petsancheck/walk.html?key=\(kakaoMapKey)&lat=\(centerCoordinate.latitude)&lng=\(centerCoordinate.longitude)"
         if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
@@ -119,20 +115,10 @@ struct WalkMapView: UIViewRepresentable {
             print("[WalkMap] Page loaded successfully")
 
             // 지도 로드 완료 후 초기화
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self = self else { return }
                 self.isMapReady = true
                 self.lastRouteCount = 0
-
-                // 초기 위치 설정 및 현재 위치 마커 표시
-                let lat = self.parent.centerCoordinate.latitude
-                let lng = self.parent.centerCoordinate.longitude
-
-                let script = """
-                    if(typeof setCenter === 'function') { setCenter(\(lat), \(lng)); }
-                    if(typeof setCurrentLocation === 'function') { setCurrentLocation(\(lat), \(lng)); }
-                """
-                webView.evaluateJavaScript(script)
 
                 // 경로가 있으면 그리기
                 if !self.parent.routeCoordinates.isEmpty {
