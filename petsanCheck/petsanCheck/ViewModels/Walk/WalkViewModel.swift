@@ -21,6 +21,9 @@ class WalkViewModel: ObservableObject {
     @Published var showPermissionAlert = false
     @Published var selectedDogId: UUID?
     @Published var selectedDogName: String?
+    @Published var showCompletionPopup = false
+    @Published var completedWalkStats: WalkStats?
+    @Published var completedDogName: String?
 
     private let locationManager: LocationManager
     private var cancellables = Set<AnyCancellable>()
@@ -122,6 +125,10 @@ class WalkViewModel: ObservableObject {
         session.endTime = Date()
         currentSession = session
 
+        // 완료 팝업을 위한 데이터 저장
+        completedWalkStats = currentStats
+        completedDogName = selectedDogName
+
         // 위치 추적 중지
         locationManager.stopTracking()
 
@@ -138,6 +145,16 @@ class WalkViewModel: ObservableObject {
         lastResumeTime = nil
         selectedDogId = nil
         selectedDogName = nil
+
+        // 완료 팝업 표시
+        showCompletionPopup = true
+    }
+
+    /// 완료 팝업 닫기
+    func dismissCompletionPopup() {
+        showCompletionPopup = false
+        completedWalkStats = nil
+        completedDogName = nil
     }
 
     /// 산책 일시정지

@@ -183,8 +183,33 @@ struct WalkView: View {
                     }
                 }
             }
+            .fullScreenCover(isPresented: $viewModel.showCompletionPopup) {
+                if let stats = viewModel.completedWalkStats {
+                    WalkCompletionView(
+                        stats: stats,
+                        dogName: viewModel.completedDogName,
+                        onDismiss: {
+                            viewModel.dismissCompletionPopup()
+                        }
+                    )
+                    .background(ClearBackgroundView())
+                }
+            }
         }
     }
+}
+
+// MARK: - 투명 배경을 위한 UIViewRepresentable
+struct ClearBackgroundView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        DispatchQueue.main.async {
+            view.superview?.superview?.backgroundColor = .clear
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
 // MARK: - 반려견 정보 배너 (간단 버전)
