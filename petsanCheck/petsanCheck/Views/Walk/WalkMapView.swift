@@ -14,10 +14,8 @@ struct WalkMapView: UIViewRepresentable {
     @Binding var centerCoordinate: CLLocationCoordinate2D
     let routeCoordinates: [CLLocationCoordinate2D]
 
-    // 카카오맵 JavaScript 키 (Info.plist에서 로드)
-    private var kakaoMapKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "KAKAO_MAP_API_KEY") as? String ?? ""
-    }
+    // 카카오맵 JavaScript 키
+    private let kakaoMapKey = APIKeys.kakaoMapKey
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()

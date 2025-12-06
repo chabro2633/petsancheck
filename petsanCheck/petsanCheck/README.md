@@ -70,13 +70,19 @@ petsanCheck/
 
 ## API 키 관리
 
-API 키는 `Info.plist`에서 관리됩니다:
+API 키는 `Config/APIKeys.swift`에서 관리됩니다:
 
-- `KAKAO_MAP_API_KEY`: 카카오맵 JavaScript 키
-- `KAKAO_REST_API_KEY`: 카카오 로컬 REST API 키
-- `OPENWEATHER_API_KEY`: OpenWeatherMap API 키
+```swift
+enum APIKeys {
+    static let kakaoMapKey = "YOUR_KAKAO_MAP_KEY"
+    static let kakaoRestKey = "YOUR_KAKAO_REST_KEY"
+    static let openWeatherKey = "YOUR_OPENWEATHER_KEY"
+}
+```
 
 코드에서 사용:
 ```swift
-Bundle.main.object(forInfoDictionaryKey: "KAKAO_MAP_API_KEY") as? String
+private let apiKey = APIKeys.kakaoMapKey
 ```
+
+> **보안**: `APIKeys.swift`는 `.gitignore`에 포함되어 원격 저장소에 업로드되지 않습니다.

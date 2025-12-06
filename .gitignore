@@ -114,6 +114,9 @@ iOSInjectionProject/
 .env
 .env.local
 
+# API Keys (보안)
+**/APIKeys.swift
+
 # Testing
 *.gcno
 *.gcda

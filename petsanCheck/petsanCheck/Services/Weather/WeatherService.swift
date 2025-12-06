@@ -14,10 +14,8 @@ class WeatherService {
 
     private init() {}
 
-    // OpenWeatherMap API 키 (Info.plist에서 로드)
-    private var apiKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "OPENWEATHER_API_KEY") as? String ?? ""
-    }
+    // OpenWeatherMap API 키
+    private let apiKey = APIKeys.openWeatherKey
     private let baseURL = "https://api.openweathermap.org/data/2.5/weather"
 
     /// 현재 위치의 날씨 정보 가져오기

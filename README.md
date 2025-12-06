@@ -59,19 +59,22 @@ petsanCheck/
 
 ### API 키 설정
 
-1. `petsanCheck/Info.plist` 파일에서 API 키 설정:
+1. `petsanCheck/petsanCheck/Config/APIKeys.swift` 파일 생성:
 
-```xml
-<key>KAKAO_MAP_API_KEY</key>
-<string>YOUR_KAKAO_MAP_KEY</string>
-<key>KAKAO_REST_API_KEY</key>
-<string>YOUR_KAKAO_REST_KEY</string>
-<key>OPENWEATHER_API_KEY</key>
-<string>YOUR_OPENWEATHER_KEY</string>
+```swift
+import Foundation
+
+enum APIKeys {
+    static let kakaoMapKey = "YOUR_KAKAO_MAP_KEY"
+    static let kakaoRestKey = "YOUR_KAKAO_REST_KEY"
+    static let openWeatherKey = "YOUR_OPENWEATHER_KEY"
+}
 ```
 
 2. 카카오 개발자 콘솔에서 도메인 등록:
    - JavaScript 키: `chabro2633.github.io` 등록
+
+> **참고**: `APIKeys.swift`는 `.gitignore`에 포함되어 있어 원격 저장소에 업로드되지 않습니다.
 
 ### 빌드
 
