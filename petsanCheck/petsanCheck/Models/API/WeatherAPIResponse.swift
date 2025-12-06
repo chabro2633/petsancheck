@@ -101,7 +101,8 @@ struct WeatherAPIResponse: Codable {
             uvIndex: uvIndex,
             airQuality: airQuality,
             weatherCondition: condition,
-            timestamp: Date()
+            timestamp: Date(),
+            locationName: name  // 도시명 추가
         )
     }
 }

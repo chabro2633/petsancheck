@@ -18,6 +18,7 @@ struct WeatherInfo: Codable, Identifiable {
     let airQuality: Int           // 미세먼지 (㎍/m³)
     let weatherCondition: WeatherCondition
     let timestamp: Date
+    let locationName: String?      // 위치명 (도시/지역)
 
     /// 날씨 상태
     enum WeatherCondition: String, Codable {
@@ -77,7 +78,8 @@ struct WeatherInfo: Codable, Identifiable {
         uvIndex: Int,
         airQuality: Int,
         weatherCondition: WeatherCondition,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        locationName: String? = nil
     ) {
         self.id = id
         self.temperature = temperature
@@ -88,6 +90,7 @@ struct WeatherInfo: Codable, Identifiable {
         self.airQuality = airQuality
         self.weatherCondition = weatherCondition
         self.timestamp = timestamp
+        self.locationName = locationName
     }
 
     /// 온도 카테고리 반환

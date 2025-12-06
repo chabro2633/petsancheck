@@ -8,7 +8,11 @@
 import Foundation
 
 /// 반려견 정보 모델
-struct Dog: Codable, Identifiable {
+struct Dog: Codable, Identifiable, Equatable {
+    static func == (lhs: Dog, rhs: Dog) -> Bool {
+        lhs.id == rhs.id
+    }
+
     let id: UUID
     var name: String
     var breed: String

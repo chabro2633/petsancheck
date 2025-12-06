@@ -18,18 +18,18 @@ struct ProfileView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "pawprint.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.textSecondary)
 
                         Text("등록된 반려견이 없습니다")
                             .font(.headline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.textSecondary)
 
                         Button(action: {
                             viewModel.isShowingAddDog = true
                         }) {
                             Label("반려견 추가하기", systemImage: "plus.circle.fill")
                                 .font(.headline)
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.primary)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -53,12 +53,14 @@ struct ProfileView: View {
                                 } label: {
                                     Label("수정", systemImage: "pencil")
                                 }
-                                .tint(.blue)
+                                .tint(AppTheme.primary)
                             }
                     }
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background)
             .navigationTitle("프로필")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -66,6 +68,7 @@ struct ProfileView: View {
                         viewModel.isShowingAddDog = true
                     }) {
                         Image(systemName: "plus")
+                            .foregroundColor(AppTheme.primary)
                     }
                 }
             }
@@ -107,17 +110,18 @@ struct DogProfileCard: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.primary)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(dog.name)
                         .font(.title2)
                         .fontWeight(.bold)
+                        .foregroundColor(AppTheme.textPrimary)
 
                     Text(dog.breed)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.textSecondary)
 
                     HStack(spacing: 12) {
                         Label(dog.ageText, systemImage: "calendar")
@@ -125,7 +129,7 @@ struct DogProfileCard: View {
                         Label("\(String(format: "%.1f", dog.weight))kg", systemImage: "scalemass")
                     }
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                 }
 
                 Spacer()
@@ -134,14 +138,14 @@ struct DogProfileCard: View {
             if let notes = dog.notes {
                 Text(notes)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                     .padding(.top, 4)
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: AppTheme.shadow, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -185,7 +189,7 @@ struct DogFormView: View {
                         TextField("몸무게", text: $weight)
                             .keyboardType(.decimalPad)
                         Text("kg")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     Picker("성별", selection: $gender) {
@@ -200,6 +204,8 @@ struct DogFormView: View {
                         .frame(height: 100)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background)
             .navigationTitle(existingDog == nil ? "반려견 추가" : "반려견 수정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -207,12 +213,14 @@ struct DogFormView: View {
                     Button("취소") {
                         dismiss()
                     }
+                    .foregroundColor(AppTheme.textSecondary)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") {
                         saveDog()
                     }
+                    .foregroundColor(AppTheme.primary)
                     .disabled(name.isEmpty || breed.isEmpty || weight.isEmpty)
                 }
             }

@@ -256,6 +256,7 @@
 				DEVELOPMENT_TEAM = S9N98RT3Q3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationQueriesSchemes = "$(inherited) kakaomap";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "산책 중 백그라운드에서도 경로를 추적하기 위해 위치 권한이 필요합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "산책 중 경로를 추적하고 현재 위치의 날씨 정보를 제공하기 위해 위치 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -291,6 +292,7 @@
 				DEVELOPMENT_TEAM = S9N98RT3Q3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationQueriesSchemes = "$(inherited) kakaomap";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "산책 중 백그라운드에서도 경로를 추적하기 위해 위치 권한이 필요합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "산책 중 경로를 추적하고 현재 위치의 날씨 정보를 제공하기 위해 위치 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

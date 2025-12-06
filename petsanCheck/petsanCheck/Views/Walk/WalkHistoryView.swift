@@ -12,50 +12,246 @@ struct WalkHistoryView: View {
     @StateObject private var viewModel = WalkHistoryViewModel()
 
     var body: some View {
-        NavigationStack {
-            List {
-                // 통계 섹션
-                Section {
-                    WalkStatisticsCard(viewModel: viewModel)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                }
+        List {
+            // 이번 주 헤더
+            Section {
+                WeeklyHeaderView(viewModel: viewModel)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
 
-                // 산책 기록 목록
-                Section("산책 기록") {
-                    if viewModel.walkRecords.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "figure.walk.circle")
-                                .font(.system(size: 50))
-                                .foregroundColor(.gray)
-                            Text("산책 기록이 없습니다")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
+            // 이번 주 통계 섹션
+            Section {
+                WeeklyStatisticsCard(viewModel: viewModel)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
+            // 요일별 산책 기록
+            Section {
+                WeeklyCalendarView(viewModel: viewModel)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
+            // 이번 주 산책 기록 목록
+            Section("이번 주 산책 기록") {
+                if viewModel.weeklyRecords.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "figure.walk.circle")
+                            .font(.system(size: 50))
+                            .foregroundColor(AppTheme.textSecondary)
+                        Text("이번 주 산책 기록이 없습니다")
+                            .font(.headline)
+                            .foregroundColor(AppTheme.textSecondary)
+                        Text("산책을 시작해보세요!")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.textSecondary.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .listRowBackground(Color.clear)
+                } else {
+                    ForEach(viewModel.weeklyRecords) { record in
+                        NavigationLink(destination: WalkRecordDetailView(record: record)) {
+                            WalkRecordRow(record: record)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                        .listRowBackground(Color.clear)
-                    } else {
-                        ForEach(viewModel.walkRecords) { record in
-                            NavigationLink(destination: WalkRecordDetailView(record: record)) {
-                                WalkRecordRow(record: record)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    viewModel.deleteRecord(record)
-                                } label: {
-                                    Label("삭제", systemImage: "trash")
-                                }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                viewModel.deleteRecord(record)
+                            } label: {
+                                Label("삭제", systemImage: "trash")
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("산책 기록")
-            .refreshable {
-                viewModel.loadWalkRecords()
+        }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
+        .navigationTitle("산책 기록")
+        .refreshable {
+            viewModel.loadWalkRecords()
+        }
+    }
+}
+
+// MARK: - 이번 주 헤더
+struct WeeklyHeaderView: View {
+    @ObservedObject var viewModel: WalkHistoryViewModel
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("이번 주")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(AppTheme.textPrimary)
+
+                Text(viewModel.weekRangeText)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "calendar")
+                .font(.title2)
+                .foregroundColor(AppTheme.primary)
+        }
+        .padding()
+    }
+}
+
+// MARK: - 이번 주 통계 카드
+struct WeeklyStatisticsCard: View {
+    @ObservedObject var viewModel: WalkHistoryViewModel
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 20) {
+                StatBox(
+                    title: "이번 주 산책",
+                    value: "\(viewModel.weeklyWalkCount)회",
+                    icon: "figure.walk",
+                    color: AppTheme.primary
+                )
+
+                StatBox(
+                    title: "이번 주 거리",
+                    value: String(format: "%.1fkm", viewModel.weeklyDistance),
+                    icon: "map",
+                    color: AppTheme.success
+                )
+            }
+
+            HStack(spacing: 20) {
+                StatBox(
+                    title: "이번 주 시간",
+                    value: formatDuration(viewModel.weeklyDuration),
+                    icon: "clock",
+                    color: AppTheme.warning
+                )
+
+                StatBox(
+                    title: "평균 거리",
+                    value: String(format: "%.2fkm", viewModel.weeklyAverageDistance),
+                    icon: "chart.bar",
+                    color: AppTheme.secondary
+                )
             }
         }
+        .padding()
+    }
+
+    private func formatDuration(_ hours: Double) -> String {
+        if hours < 1 {
+            return String(format: "%.0f분", hours * 60)
+        } else {
+            return String(format: "%.1f시간", hours)
+        }
+    }
+}
+
+// MARK: - 요일별 캘린더 뷰
+struct WeeklyCalendarView: View {
+    @ObservedObject var viewModel: WalkHistoryViewModel
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                ForEach(1...7, id: \.self) { day in
+                    DayCell(
+                        dayName: viewModel.dayName(for: day),
+                        date: viewModel.dateFor(day: day),
+                        walkCount: viewModel.dailyRecords[day]?.count ?? 0,
+                        distance: viewModel.distanceFor(day: day),
+                        isToday: viewModel.isToday(day: day),
+                        isFuture: viewModel.isFuture(day: day)
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
+        .shadow(color: AppTheme.shadow, radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - 요일 셀
+struct DayCell: View {
+    let dayName: String
+    let date: Date?
+    let walkCount: Int
+    let distance: Double
+    let isToday: Bool
+    let isFuture: Bool
+
+    private var dayNumber: String {
+        guard let date = date else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            // 요일
+            Text(dayName)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .foregroundColor(isToday ? AppTheme.primary : AppTheme.textSecondary)
+
+            // 날짜
+            ZStack {
+                if isToday {
+                    Circle()
+                        .fill(AppTheme.primary)
+                        .frame(width: 28, height: 28)
+                }
+
+                Text(dayNumber)
+                    .font(.caption)
+                    .fontWeight(isToday ? .bold : .regular)
+                    .foregroundColor(isToday ? .white : (isFuture ? AppTheme.textSecondary.opacity(0.5) : AppTheme.textPrimary))
+            }
+
+            // 산책 표시
+            if walkCount > 0 {
+                VStack(spacing: 2) {
+                    // 산책 횟수 표시 (점)
+                    HStack(spacing: 2) {
+                        ForEach(0..<min(walkCount, 3), id: \.self) { _ in
+                            Circle()
+                                .fill(AppTheme.success)
+                                .frame(width: 4, height: 4)
+                        }
+                        if walkCount > 3 {
+                            Text("+")
+                                .font(.system(size: 6))
+                                .foregroundColor(AppTheme.success)
+                        }
+                    }
+
+                    // 거리
+                    Text(String(format: "%.1f", distance))
+                        .font(.system(size: 8))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+            } else if !isFuture {
+                Text("-")
+                    .font(.caption2)
+                    .foregroundColor(AppTheme.textSecondary.opacity(0.3))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isToday ? AppTheme.primary.opacity(0.1) : Color.clear)
+        )
     }
 }
 
@@ -70,14 +266,14 @@ struct WalkStatisticsCard: View {
                     title: "총 산책",
                     value: "\(viewModel.totalWalkCount)회",
                     icon: "figure.walk",
-                    color: .blue
+                    color: AppTheme.primary
                 )
 
                 StatBox(
                     title: "총 거리",
                     value: String(format: "%.1fkm", viewModel.totalDistance),
                     icon: "map",
-                    color: .green
+                    color: AppTheme.success
                 )
             }
 
@@ -86,14 +282,14 @@ struct WalkStatisticsCard: View {
                     title: "총 시간",
                     value: String(format: "%.1fh", viewModel.totalDuration),
                     icon: "clock",
-                    color: .orange
+                    color: AppTheme.warning
                 )
 
                 StatBox(
                     title: "평균 거리",
                     value: String(format: "%.2fkm", viewModel.averageDistance),
                     icon: "chart.bar",
-                    color: .purple
+                    color: AppTheme.secondary
                 )
             }
         }
@@ -116,16 +312,17 @@ struct StatBox: View {
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
+                .foregroundColor(AppTheme.textPrimary)
 
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .shadow(color: AppTheme.shadow, radius: 5, x: 0, y: 2)
     }
 }
 
@@ -138,6 +335,7 @@ struct WalkRecordRow: View {
             HStack {
                 Text(record.startTime, style: .date)
                     .font(.headline)
+                    .foregroundColor(AppTheme.textPrimary)
 
                 Spacer()
 
@@ -146,13 +344,13 @@ struct WalkRecordRow: View {
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.2))
-                        .foregroundColor(.green)
+                        .background(AppTheme.success.opacity(0.2))
+                        .foregroundColor(AppTheme.success)
                         .cornerRadius(8)
                 } else {
                     Text(record.startTime, style: .time)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.textSecondary)
                 }
             }
 
@@ -173,12 +371,12 @@ struct WalkRecordRow: View {
                 )
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundColor(AppTheme.textSecondary)
 
             if let notes = record.notes {
                 Text(notes)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                     .padding(.top, 4)
             }
         }

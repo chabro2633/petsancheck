@@ -19,11 +19,16 @@ struct WalkMapView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.preferences.javaScriptEnabled = true
+
+        // JavaScript 설정
+        let preferences = WKWebpagePreferences()
+        preferences.allowsContentJavaScript = true
+        configuration.defaultWebpagePreferences = preferences
         configuration.allowsInlineMediaPlayback = true
 
         // 메시지 핸들러 등록
         configuration.userContentController.add(context.coordinator, name: "consoleLog")
+        configuration.userContentController.add(context.coordinator, name: "mapReady")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -44,33 +49,54 @@ struct WalkMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // 지도 중심 변경
+        // 지도가 로드되지 않았으면 무시
+        guard context.coordinator.isMapReady else { return }
+
+        // 지도 중심 변경 (부드러운 이동)
         let script = "setCenter(\(centerCoordinate.latitude), \(centerCoordinate.longitude));"
         webView.evaluateJavaScript(script)
 
         // 경로 업데이트
-        updateRoute(webView)
+        updateRoute(webView, context: context)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    private func updateRoute(_ webView: WKWebView) {
+    private func updateRoute(_ webView: WKWebView, context: Context) {
         guard !routeCoordinates.isEmpty else {
             webView.evaluateJavaScript("clearRoute();")
             return
         }
 
-        // 좌표 배열을 JSON으로 변환
-        let coordinates = routeCoordinates.map { coord in
-            ["latitude": coord.latitude, "longitude": coord.longitude]
-        }
+        // 이전 경로와 비교하여 새로운 포인트만 추가 (성능 최적화)
+        let lastUpdateCount = context.coordinator.lastRouteCount
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: coordinates, options: []),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            let script = "setRoute('\(jsonString)');"
-            webView.evaluateJavaScript(script)
+        if routeCoordinates.count > lastUpdateCount {
+            // 새로운 포인트만 추가
+            let newCoordinates = Array(routeCoordinates.suffix(from: lastUpdateCount))
+
+            if lastUpdateCount == 0 {
+                // 첫 경로 설정
+                let coordinates = routeCoordinates.map { coord in
+                    ["latitude": coord.latitude, "longitude": coord.longitude]
+                }
+
+                if let jsonData = try? JSONSerialization.data(withJSONObject: coordinates, options: []),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    let script = "setRoute('\(jsonString)');"
+                    webView.evaluateJavaScript(script)
+                }
+            } else {
+                // 새 포인트 추가
+                for coord in newCoordinates {
+                    let script = "addRoutePoint(\(coord.latitude), \(coord.longitude));"
+                    webView.evaluateJavaScript(script)
+                }
+            }
+
+            context.coordinator.lastRouteCount = routeCoordinates.count
         }
 
         // 현재 위치 마커 표시
@@ -82,6 +108,9 @@ struct WalkMapView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: WalkMapView
+        var isMapReady = false
+        var lastRouteCount = 0
+        private var webViewRef: WKWebView?
 
         init(_ parent: WalkMapView) {
             self.parent = parent
@@ -89,23 +118,59 @@ struct WalkMapView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("Walk map loaded successfully from remote URL")
-            // 지도 로드 완료 후 경로 업데이트
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.parent.updateRoute(webView)
+            webViewRef = webView
+
+            // 지도 로드 완료 후 초기화
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.isMapReady = true
+                self?.lastRouteCount = 0
+
+                // 초기 위치 설정
+                let script = "setCenter(\(self?.parent.centerCoordinate.latitude ?? 37.5665), \(self?.parent.centerCoordinate.longitude ?? 126.9780));"
+                webView.evaluateJavaScript(script)
+
+                // 경로가 있으면 그리기
+                if let coords = self?.parent.routeCoordinates, !coords.isEmpty {
+                    self?.initialRouteSetup(webView)
+                }
+            }
+        }
+
+        private func initialRouteSetup(_ webView: WKWebView) {
+            let coordinates = parent.routeCoordinates.map { coord in
+                ["latitude": coord.latitude, "longitude": coord.longitude]
+            }
+
+            if let jsonData = try? JSONSerialization.data(withJSONObject: coordinates, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                let script = "setRoute('\(jsonString)');"
+                webView.evaluateJavaScript(script)
+                lastRouteCount = parent.routeCoordinates.count
+            }
+
+            // 현재 위치 마커 표시
+            if let last = parent.routeCoordinates.last {
+                let script = "setCurrentLocation(\(last.latitude), \(last.longitude));"
+                webView.evaluateJavaScript(script)
             }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             print("WalkMapView navigation failed: \(error.localizedDescription)")
+            isMapReady = false
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             print("WalkMapView provisional navigation failed: \(error.localizedDescription)")
+            isMapReady = false
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if message.name == "consoleLog" {
                 print("[WalkMap JS] \(message.body)")
+            } else if message.name == "mapReady" {
+                print("[WalkMap] Map is ready")
+                isMapReady = true
             }
         }
     }

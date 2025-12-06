@@ -23,15 +23,16 @@ struct HomeView: View {
                     if viewModel.isLoadingWeather {
                         ProgressView("날씨 정보 로딩 중...")
                             .padding()
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     // 에러 메시지
                     if let error = viewModel.weatherError {
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppTheme.danger)
                             .padding()
-                            .background(Color.red.opacity(0.1))
+                            .background(AppTheme.danger.opacity(0.1))
                             .cornerRadius(8)
                     }
 
@@ -39,13 +40,20 @@ struct HomeView: View {
                     if let recommendation = viewModel.walkRecommendation {
                         WalkRecommendationCardView(recommendation: recommendation)
                     }
-
-                    // 퀵 액션 버튼들
-                    QuickActionsView(selectedTab: $selectedTab)
                 }
                 .padding()
             }
+            .background(AppTheme.background)
             .navigationTitle("펫산책")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ProfileView()) {
+                        Image(systemName: "person.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(AppTheme.primary)
+                    }
+                }
+            }
             .onAppear {
                 viewModel.loadCurrentLocationWeather()
             }
@@ -61,35 +69,105 @@ struct WeatherCardView: View {
     let weather: WeatherInfo
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: weather.weatherCondition.icon)
-                    .font(.system(size: 40))
-                    .foregroundColor(.blue)
+        VStack(alignment: .leading, spacing: 16) {
+            // 위치 정보
+            HStack(spacing: 6) {
+                Image(systemName: "location.fill")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.primary)
+                Text(weather.locationName ?? "위치 확인 중...")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(AppTheme.textPrimary)
+                Spacer()
+                Text(formattedTime)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+
+            // 메인 날씨 정보
+            HStack(alignment: .center) {
+                // 날씨 아이콘과 상태
+                VStack(alignment: .leading, spacing: 4) {
+                    Image(systemName: weather.weatherCondition.icon)
+                        .font(.system(size: 50))
+                        .foregroundColor(iconColor)
+                    Text(weather.weatherCondition.rawValue)
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.textSecondary)
+                }
 
                 Spacer()
 
-                VStack(alignment: .trailing) {
-                    Text("\(String(format: "%.1f", weather.temperature))°C")
-                        .font(.system(size: 36, weight: .bold))
-                    Text(weather.weatherCondition.rawValue)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                // 온도 표시
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("\(Int(round(weather.temperature)))°")
+                        .font(.system(size: 64, weight: .thin))
+                        .foregroundColor(AppTheme.textPrimary)
+                    Text(weather.temperatureCategory.description)
+                        .font(.caption)
+                        .foregroundColor(temperatureColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(temperatureColor.opacity(0.15))
+                        .cornerRadius(8)
                 }
             }
 
             Divider()
 
-            HStack(spacing: 20) {
+            // 상세 날씨 정보
+            HStack(spacing: 0) {
                 WeatherDetailItem(icon: "humidity.fill", value: "\(weather.humidity)%", label: "습도")
                 WeatherDetailItem(icon: "wind", value: "\(String(format: "%.1f", weather.windSpeed))m/s", label: "풍속")
                 WeatherDetailItem(icon: "sun.max.fill", value: "\(weather.uvIndex)", label: "자외선")
+                WeatherDetailItem(icon: "aqi.medium", value: airQualityText, label: "대기질")
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: AppTheme.shadow, radius: 10, x: 0, y: 4)
+    }
+
+    // 현재 시간 포맷
+    private var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "a h:mm 업데이트"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter.string(from: weather.timestamp)
+    }
+
+    // 날씨 아이콘 색상
+    private var iconColor: Color {
+        switch weather.weatherCondition {
+        case .sunny: return Color.orange
+        case .cloudy: return AppTheme.textSecondary
+        case .rainy: return AppTheme.primary
+        case .snowy: return AppTheme.primary.opacity(0.7)
+        case .foggy: return AppTheme.textSecondary
+        }
+    }
+
+    // 온도 카테고리 색상
+    private var temperatureColor: Color {
+        switch weather.temperatureCategory {
+        case .cold: return Color.blue
+        case .cool: return AppTheme.primary
+        case .moderate: return AppTheme.success
+        case .warm: return Color.orange
+        case .hot: return AppTheme.danger
+        }
+    }
+
+    // 대기질 텍스트
+    private var airQualityText: String {
+        switch weather.airQuality {
+        case 0..<50: return "좋음"
+        case 50..<100: return "보통"
+        case 100..<150: return "나쁨"
+        default: return "매우나쁨"
+        }
     }
 }
 
@@ -101,13 +179,14 @@ struct WeatherDetailItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.primary)
             Text(value)
                 .font(.caption)
                 .fontWeight(.semibold)
+                .foregroundColor(AppTheme.textPrimary)
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -126,6 +205,7 @@ struct WalkRecommendationCardView: View {
 
                 Text("산책 추천")
                     .font(.headline)
+                    .foregroundColor(AppTheme.textPrimary)
 
                 Spacer()
 
@@ -137,6 +217,7 @@ struct WalkRecommendationCardView: View {
 
             Text(recommendation.message)
                 .font(.body)
+                .foregroundColor(AppTheme.textPrimary)
 
             if !recommendation.warnings.isEmpty {
                 Divider()
@@ -144,9 +225,10 @@ struct WalkRecommendationCardView: View {
                     ForEach(recommendation.warnings, id: \.message) { warning in
                         HStack {
                             Image(systemName: warning.type.icon)
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.warning)
                             Text(warning.message)
                                 .font(.caption)
+                                .foregroundColor(AppTheme.textSecondary)
                         }
                     }
                 }
@@ -157,112 +239,40 @@ struct WalkRecommendationCardView: View {
                 Text("추천 시간대")
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                    .foregroundColor(AppTheme.textPrimary)
 
                 ForEach(recommendation.bestTimeSlots) { slot in
                     HStack {
                         Image(systemName: "clock.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.primary)
                         Text(slot.displayTimeRange)
                             .font(.caption)
+                            .foregroundColor(AppTheme.textPrimary)
                         Spacer()
                         Text("\(slot.score)점")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.textSecondary)
                     }
                 }
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: AppTheme.shadow, radius: 10, x: 0, y: 4)
     }
 
     private func colorForLevel(_ level: WalkRecommendation.RecommendationLevel) -> Color {
         switch level {
-        case .excellent: return .green
-        case .good: return .blue
-        case .moderate: return .yellow
-        case .poor: return .orange
-        case .dangerous: return .red
+        case .excellent: return AppTheme.success
+        case .good: return AppTheme.primary
+        case .moderate: return AppTheme.warning
+        case .poor: return AppTheme.warning
+        case .dangerous: return AppTheme.danger
         }
     }
 }
 
-// MARK: - 퀵 액션 뷰
-struct QuickActionsView: View {
-    @Binding var selectedTab: Int
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("퀵 액션")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 12) {
-                Button(action: {
-                    selectedTab = 1 // 산책 탭으로 이동
-                }) {
-                    QuickActionCard(
-                        icon: "figure.walk",
-                        title: "산책 시작",
-                        color: .blue
-                    )
-                }
-
-                Button(action: {
-                    selectedTab = 2 // 병원 탭으로 이동
-                }) {
-                    QuickActionCard(
-                        icon: "cross.fill",
-                        title: "병원 찾기",
-                        color: .red
-                    )
-                }
-            }
-
-            HStack(spacing: 12) {
-                NavigationLink(destination: WalkHistoryView()) {
-                    QuickActionCard(
-                        icon: "chart.bar.fill",
-                        title: "산책 기록",
-                        color: .green
-                    )
-                }
-
-                Button(action: {
-                    selectedTab = 3 // 피드 탭으로 이동
-                }) {
-                    QuickActionCard(
-                        icon: "photo.fill",
-                        title: "사진 공유",
-                        color: .purple
-                    )
-                }
-            }
-        }
-    }
-}
-
-struct QuickActionCard: View {
-    let icon: String
-    let title: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-            Text(title)
-                .font(.caption)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(color.opacity(0.1))
-        .foregroundColor(color)
-        .cornerRadius(12)
-    }
-}
 
 #Preview {
     HomeView(selectedTab: .constant(0))

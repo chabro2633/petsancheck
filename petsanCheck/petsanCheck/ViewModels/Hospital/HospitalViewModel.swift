@@ -160,13 +160,24 @@ class HospitalViewModel: ObservableObject {
         UIApplication.shared.open(url)
     }
 
-    /// 지도 앱에서 열기
+    /// 카카오맵에서 길찾기
     func openInMaps(_ hospital: Hospital) {
         let coordinate = hospital.coordinate
-        let url = URL(string: "http://maps.apple.com/?ll=\(coordinate.latitude),\(coordinate.longitude)&q=\(hospital.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")
+        let hospitalName = hospital.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 
-        if let url = url {
-            UIApplication.shared.open(url)
+        // 카카오맵 앱 URL 스킴
+        let kakaoMapAppURL = URL(string: "kakaomap://look?p=\(coordinate.latitude),\(coordinate.longitude)")
+
+        // 카카오맵 앱이 설치되어 있으면 앱으로 열기
+        if let kakaoMapAppURL = kakaoMapAppURL,
+           UIApplication.shared.canOpenURL(kakaoMapAppURL) {
+            UIApplication.shared.open(kakaoMapAppURL)
+        } else {
+            // 카카오맵 앱이 없으면 카카오맵 웹으로 열기
+            let kakaoMapWebURL = URL(string: "https://map.kakao.com/link/map/\(hospitalName),\(coordinate.latitude),\(coordinate.longitude)")
+            if let webURL = kakaoMapWebURL {
+                UIApplication.shared.open(webURL)
+            }
         }
     }
 }

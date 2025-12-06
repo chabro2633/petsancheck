@@ -10,11 +10,10 @@ import CoreLocation
 
 /// 산책 화면
 struct WalkView: View {
-    @StateObject private var viewModel = WalkViewModel()
+    @ObservedObject private var viewModel = WalkViewModel.shared
     @StateObject private var profileViewModel = ProfileViewModel()
     @State private var centerCoordinate = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
     @State private var showDogSelection = false
-    @State private var selectedDog: Dog?
 
     var body: some View {
         NavigationStack {
@@ -32,8 +31,8 @@ struct WalkView: View {
                     // 상단 컴팩트 정보 영역
                     VStack(spacing: 0) {
                         // 선택된 반려견 정보
-                        if viewModel.isTracking, let dog = selectedDog {
-                            DogInfoBanner(dog: dog)
+                        if viewModel.isTracking, let dogName = viewModel.selectedDogName {
+                            DogInfoBannerSimple(dogName: dogName, isPaused: viewModel.isPaused)
                         }
 
                         // 통계 카드 (컴팩트 버전)
@@ -43,9 +42,9 @@ struct WalkView: View {
                                 .padding(.vertical, 8)
                         }
                     }
-                    .background(Color(.systemBackground).opacity(0.95))
+                    .background(AppTheme.cardBackground.opacity(0.95))
                     .cornerRadius(16, corners: [.bottomLeft, .bottomRight])
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    .shadow(color: AppTheme.shadow, radius: 5, x: 0, y: 2)
 
                     Spacer()
 
@@ -67,10 +66,10 @@ struct WalkView: View {
                         }) {
                             Image(systemName: "location.fill")
                                 .padding(12)
-                                .background(Color.blue)
+                                .background(AppTheme.primary)
                                 .foregroundColor(.white)
                                 .clipShape(Circle())
-                                .shadow(radius: 4)
+                                .shadow(color: AppTheme.shadow, radius: 4)
                         }
                         .padding(.trailing)
                     }
@@ -79,7 +78,7 @@ struct WalkView: View {
                     // 컨트롤 버튼
                     WalkControlButtons(
                         isTracking: viewModel.isTracking,
-                        selectedDog: selectedDog,
+                        isPaused: viewModel.isPaused,
                         onStart: {
                             if profileViewModel.dogs.isEmpty {
                                 // 반려견이 없으면 바로 시작
@@ -89,9 +88,14 @@ struct WalkView: View {
                                 showDogSelection = true
                             }
                         },
+                        onPause: {
+                            viewModel.pauseWalk()
+                        },
+                        onResume: {
+                            viewModel.resumeWalk()
+                        },
                         onStop: {
-                            viewModel.stopWalk(dogId: selectedDog?.id)
-                            selectedDog = nil
+                            viewModel.stopWalk()
                         }
                     )
                     .padding()
@@ -111,9 +115,8 @@ struct WalkView: View {
             }
             .sheet(isPresented: $showDogSelection) {
                 DogSelectionView(dogs: profileViewModel.dogs) { dog in
-                    selectedDog = dog
                     showDogSelection = false
-                    viewModel.startWalk()
+                    viewModel.startWalk(dog: dog)
                 }
             }
             .onChange(of: viewModel.currentLocation) { oldValue, newValue in
@@ -136,23 +139,25 @@ struct WalkView: View {
     }
 }
 
-// MARK: - 반려견 정보 배너
-struct DogInfoBanner: View {
-    let dog: Dog
+// MARK: - 반려견 정보 배너 (간단 버전)
+struct DogInfoBannerSimple: View {
+    let dogName: String
+    let isPaused: Bool
 
     var body: some View {
         HStack {
             Image(systemName: "pawprint.fill")
-                .foregroundColor(.blue)
-            Text("\(dog.name)와 산책 중")
+                .foregroundColor(isPaused ? AppTheme.warning : AppTheme.primary)
+            Text(isPaused ? "\(dogName)와 산책 일시정지" : "\(dogName)와 산책 중")
                 .font(.subheadline)
                 .fontWeight(.semibold)
+                .foregroundColor(AppTheme.textPrimary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .shadow(color: AppTheme.shadow, radius: 5, x: 0, y: 2)
     }
 }
 
@@ -170,9 +175,9 @@ struct DogSelectionView: View {
                     }) {
                         HStack {
                             Image(systemName: "figure.walk")
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.textSecondary)
                             Text("반려견 없이 산책")
-                                .foregroundColor(.primary)
+                                .foregroundColor(AppTheme.textPrimary)
                         }
                     }
                 }
@@ -184,28 +189,30 @@ struct DogSelectionView: View {
                         }) {
                             HStack {
                                 Image(systemName: "pawprint.circle.fill")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.primary)
                                     .font(.title2)
 
                                 VStack(alignment: .leading) {
                                     Text(dog.name)
                                         .font(.headline)
-                                        .foregroundColor(.primary)
+                                        .foregroundColor(AppTheme.textPrimary)
                                     Text(dog.breed)
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(AppTheme.textSecondary)
                                 }
 
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(AppTheme.textSecondary)
                                     .font(.caption)
                             }
                         }
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.background)
             .navigationTitle("산책할 반려견 선택")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -227,9 +234,9 @@ struct WalkStatsCard: View {
             StatItem(icon: "flame.fill", label: "칼로리", value: stats.caloriesText)
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: AppTheme.shadow, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -260,10 +267,11 @@ struct CompactStatItem: View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.primary)
             Text(value)
                 .font(.caption)
                 .fontWeight(.semibold)
+                .foregroundColor(AppTheme.textPrimary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -277,14 +285,15 @@ struct StatItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.primary)
                 .font(.caption)
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.textSecondary)
             Text(value)
                 .font(.caption)
                 .fontWeight(.bold)
+                .foregroundColor(AppTheme.textPrimary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -293,24 +302,46 @@ struct StatItem: View {
 // MARK: - 컨트롤 버튼
 struct WalkControlButtons: View {
     let isTracking: Bool
-    let selectedDog: Dog?
+    let isPaused: Bool
     let onStart: () -> Void
+    let onPause: () -> Void
+    let onResume: () -> Void
     let onStop: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
             if isTracking {
-                // 종료 버튼
-                Button(action: onStop) {
+                // 일시정지/재개 버튼
+                Button(action: {
+                    if isPaused {
+                        onResume()
+                    } else {
+                        onPause()
+                    }
+                }) {
                     HStack {
-                        Image(systemName: "stop.fill")
-                        Text("산책 종료")
+                        Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                        Text(isPaused ? "재개" : "일시정지")
                     }
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.red)
+                    .background(isPaused ? AppTheme.success : AppTheme.warning)
+                    .cornerRadius(12)
+                }
+
+                // 종료 버튼
+                Button(action: onStop) {
+                    HStack {
+                        Image(systemName: "stop.fill")
+                        Text("종료")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppTheme.danger)
                     .cornerRadius(12)
                 }
             } else {
@@ -324,7 +355,7 @@ struct WalkControlButtons: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(AppTheme.primary)
                     .cornerRadius(12)
                 }
             }

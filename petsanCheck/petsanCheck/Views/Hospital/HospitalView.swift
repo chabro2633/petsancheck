@@ -40,10 +40,10 @@ struct HospitalView: View {
                             }) {
                                 Image(systemName: "location.fill")
                                     .padding(12)
-                                    .background(Color.blue)
+                                    .background(AppTheme.primary)
                                     .foregroundColor(.white)
                                     .clipShape(Circle())
-                                    .shadow(radius: 4)
+                                    .shadow(color: AppTheme.shadow, radius: 4)
                             }
 
                             // 근처 병원 검색 버튼
@@ -54,10 +54,10 @@ struct HospitalView: View {
                             }) {
                                 Image(systemName: "magnifyingglass")
                                     .padding(12)
-                                    .background(Color.white)
-                                    .foregroundColor(.blue)
+                                    .background(AppTheme.cardBackground)
+                                    .foregroundColor(AppTheme.primary)
                                     .clipShape(Circle())
-                                    .shadow(radius: 4)
+                                    .shadow(color: AppTheme.shadow, radius: 4)
                             }
                         }
                         .padding()
@@ -67,27 +67,32 @@ struct HospitalView: View {
                     if viewModel.isLoading {
                         ProgressView("검색 중...")
                             .padding()
+                            .foregroundColor(AppTheme.textSecondary)
                     } else if let error = viewModel.errorMessage {
                         VStack(spacing: 12) {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.largeTitle)
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.warning)
                             Text(error)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(AppTheme.background)
                     } else if viewModel.hospitals.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
                                 .font(.largeTitle)
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.textSecondary)
                             Text("검색 결과가 없습니다")
                                 .font(.headline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.textSecondary)
                         }
                         .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(AppTheme.background)
                     } else {
                         List {
                             ForEach(viewModel.hospitals) { hospital in
@@ -99,6 +104,8 @@ struct HospitalView: View {
                             }
                         }
                         .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .background(AppTheme.background)
                     }
                 }
 
@@ -163,17 +170,18 @@ struct HospitalRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "cross.circle.fill")
-                    .foregroundColor(.red)
+                    .foregroundColor(AppTheme.danger)
                     .font(.title2)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(hospital.name)
                         .font(.headline)
+                        .foregroundColor(AppTheme.textPrimary)
 
                     if let distance = hospital.distance {
                         Text(hospital.distanceText)
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.primary)
                     }
                 }
 
@@ -181,12 +189,12 @@ struct HospitalRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.textSecondary)
             }
 
             Text(hospital.address)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.textSecondary)
 
             if let phone = hospital.phone {
                 HStack {
@@ -195,7 +203,7 @@ struct HospitalRow: View {
                     Text(phone)
                         .font(.caption)
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(AppTheme.textSecondary)
             }
         }
         .padding(.vertical, 4)
@@ -213,25 +221,26 @@ struct HospitalDetailSheet: View {
         VStack(spacing: 16) {
             // 드래그 핸들
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.gray.opacity(0.3))
+                .fill(AppTheme.textSecondary.opacity(0.3))
                 .frame(width: 40, height: 6)
                 .padding(.top, 8)
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "cross.circle.fill")
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.danger)
                         .font(.title)
 
                     VStack(alignment: .leading) {
                         Text(hospital.name)
                             .font(.title3)
                             .fontWeight(.bold)
+                            .foregroundColor(AppTheme.textPrimary)
 
                         if let distance = hospital.distance {
                             Text(hospital.distanceText)
                                 .font(.caption)
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.primary)
                         }
                     }
 
@@ -239,7 +248,7 @@ struct HospitalDetailSheet: View {
 
                     Button(action: onDismiss) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.textSecondary)
                             .font(.title2)
                     }
                 }
@@ -249,27 +258,29 @@ struct HospitalDetailSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "map.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.textSecondary)
                         Text(hospital.address)
                             .font(.subheadline)
+                            .foregroundColor(AppTheme.textPrimary)
                     }
 
                     if let roadAddress = hospital.roadAddress {
                         HStack {
                             Image(systemName: "signpost.right.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.textSecondary)
                             Text(roadAddress)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.textSecondary)
                         }
                     }
 
                     if let phone = hospital.phone {
                         HStack {
                             Image(systemName: "phone.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.textSecondary)
                             Text(phone)
                                 .font(.subheadline)
+                                .foregroundColor(AppTheme.textPrimary)
                         }
                     }
                 }
@@ -283,7 +294,7 @@ struct HospitalDetailSheet: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.green)
+                            .background(AppTheme.success)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
@@ -296,7 +307,7 @@ struct HospitalDetailSheet: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(AppTheme.primary)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
@@ -304,9 +315,9 @@ struct HospitalDetailSheet: View {
             }
             .padding()
         }
-        .background(Color(.systemBackground))
+        .background(AppTheme.cardBackground)
         .cornerRadius(20, corners: [.topLeft, .topRight])
-        .shadow(radius: 10)
+        .shadow(color: AppTheme.shadow, radius: 10)
     }
 }
 
