@@ -8,6 +8,8 @@
 import SwiftUI
 import PhotosUI
 import AVKit
+import CoreLocation
+import Combine
 
 /// 피드 화면 (인스타그램 스타일)
 struct FeedView: View {
@@ -525,6 +527,7 @@ struct EmptyFeedView: View {
 struct CreatePostView: View {
     @ObservedObject var viewModel: FeedViewModel
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var locationHelper = PostLocationHelper()
 
     // 미디어 선택
     @State private var selectedPhotos: [PhotosPickerItem] = []
@@ -541,7 +544,7 @@ struct CreatePostView: View {
     // 게시글 정보
     @State private var content = ""
     @State private var location = ""
-    @State private var includeWalkData = false
+    @State private var includeWalkData = true  // 기본값 true로 변경
 
     var body: some View {
         NavigationStack {
@@ -563,18 +566,51 @@ struct CreatePostView: View {
                         isNewDog: $isNewDog
                     )
 
-                    // 위치 정보
+                    // 위치 정보 (자동 입력)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("위치")
-                            .font(.headline)
-                            .foregroundColor(AppTheme.textPrimary)
+                        HStack {
+                            Text("위치")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.textPrimary)
 
-                        TextField("위치 추가 (선택)", text: $location)
-                            .textFieldStyle(CustomTextFieldStyle())
+                            Spacer()
+
+                            if locationHelper.isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else if !location.isEmpty {
+                                Button(action: {
+                                    locationHelper.refreshLocation()
+                                }) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.primary)
+                                }
+                            }
+                        }
+
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(AppTheme.primary)
+                                .font(.caption)
+
+                            Text(location.isEmpty ? "위치를 가져오는 중..." : location)
+                                .font(.subheadline)
+                                .foregroundColor(location.isEmpty ? AppTheme.textSecondary : AppTheme.textPrimary)
+
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(AppTheme.cardBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppTheme.secondary.opacity(0.3), lineWidth: 1)
+                        )
                     }
                     .padding(.horizontal)
 
-                    // 산책 데이터 포함
+                    // 산책 데이터 포함 (기본 true)
                     Toggle(isOn: $includeWalkData) {
                         HStack {
                             Image(systemName: "figure.walk")
@@ -597,6 +633,7 @@ struct CreatePostView: View {
                                 .frame(minHeight: 120)
                                 .padding(8)
                                 .scrollContentBackground(.hidden)
+                                .foregroundColor(.black)  // 텍스트 색상 검은색
                                 .background(AppTheme.cardBackground)
                                 .cornerRadius(12)
                                 .overlay(
@@ -642,6 +679,17 @@ struct CreatePostView: View {
                     petName = dog.name
                     petBreed = dog.breed
                     isNewDog = false
+                }
+            }
+            .onChange(of: locationHelper.locationName) { _, newLocation in
+                if !newLocation.isEmpty {
+                    location = newLocation
+                }
+            }
+            .onAppear {
+                // 이미 위치가 있으면 사용
+                if !locationHelper.locationName.isEmpty {
+                    location = locationHelper.locationName
                 }
             }
         }
@@ -1537,6 +1585,88 @@ struct CreateStoryView: View {
         )
 
         dismiss()
+    }
+}
+
+// MARK: - 게시글 위치 도우미
+class PostLocationHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var locationName: String = ""
+    @Published var isLoading = false
+
+    private let locationManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        requestLocation()
+    }
+
+    func requestLocation() {
+        isLoading = true
+
+        if locationManager.authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+        } else if locationManager.authorizationStatus == .authorizedWhenInUse ||
+                  locationManager.authorizationStatus == .authorizedAlways {
+            locationManager.requestLocation()
+        } else {
+            isLoading = false
+        }
+    }
+
+    func refreshLocation() {
+        requestLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else {
+            isLoading = false
+            return
+        }
+
+        // 역지오코딩으로 위치 이름 가져오기
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+
+                if let placemark = placemarks?.first {
+                    var components: [String] = []
+
+                    // 시/도
+                    if let administrativeArea = placemark.administrativeArea {
+                        components.append(administrativeArea)
+                    }
+
+                    // 구/군
+                    if let locality = placemark.locality {
+                        components.append(locality)
+                    } else if let subAdministrativeArea = placemark.subAdministrativeArea {
+                        components.append(subAdministrativeArea)
+                    }
+
+                    // 동/읍/면
+                    if let subLocality = placemark.subLocality {
+                        components.append(subLocality)
+                    }
+
+                    self?.locationName = components.joined(separator: " ")
+                }
+            }
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("[PostLocation] Error: \(error.localizedDescription)")
+        isLoading = false
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if manager.authorizationStatus == .authorizedWhenInUse ||
+           manager.authorizationStatus == .authorizedAlways {
+            locationManager.requestLocation()
+        }
     }
 }
 
