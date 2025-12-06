@@ -64,12 +64,21 @@ struct WalkView: View {
                                 }
                             }
                         }) {
-                            Image(systemName: "location.fill")
-                                .padding(12)
-                                .background(AppTheme.primary)
-                                .foregroundColor(.white)
-                                .clipShape(Circle())
-                                .shadow(color: AppTheme.shadow, radius: 4)
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.primary)
+                                    .frame(width: 44, height: 44)
+                                    .shadow(color: AppTheme.shadow, radius: 4)
+
+                                if viewModel.isLocating {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "location.fill")
+                                        .foregroundColor(.white)
+                                }
+                            }
                         }
                         .padding(.trailing)
                     }

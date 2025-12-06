@@ -240,8 +240,13 @@ class WalkViewModel: ObservableObject {
         // 위치 업데이트 시작 (추적 중이 아닐 때만)
         if !isTracking && (locationManager.authorizationStatus == .authorizedWhenInUse ||
                            locationManager.authorizationStatus == .authorizedAlways) {
-            locationManager.startUpdatingLocation()
+            locationManager.startQuickLocationFetch()
         }
+    }
+
+    /// 위치를 찾는 중인지
+    var isLocating: Bool {
+        locationManager.isLocating
     }
 }
 
