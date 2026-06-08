@@ -21,7 +21,7 @@ class HospitalViewModel: ObservableObject {
     @Published var searchMode: SearchMode = .nearby
 
     private let hospitalService = HospitalService.shared
-    private let locationManager = LocationManager()
+    private let locationManager = LocationManager.shared
     private var cancellables = Set<AnyCancellable>()
     private var currentLocation: CLLocation?
 

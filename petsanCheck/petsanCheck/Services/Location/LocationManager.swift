@@ -10,7 +10,14 @@ import CoreLocation
 import Combine
 
 /// 위치 추적 및 관리를 담당하는 서비스
+///
+/// 앱 전역에서 단일 인스턴스(`LocationManager.shared`)를 공유한다.
+/// 여러 ViewModel이 각자 인스턴스를 만들면 GPS 스트림이 중복되어 배터리가 빠르게 소모되므로,
+/// 반드시 `shared`를 사용한다.
 class LocationManager: NSObject, ObservableObject {
+    /// 공유 싱글톤 인스턴스
+    static let shared = LocationManager()
+
     @Published var location: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus
     @Published var isTracking = false
@@ -29,7 +36,7 @@ class LocationManager: NSObject, ObservableObject {
     private let maximumLocationAge: TimeInterval = 120.0  // 2분까지 캐시 허용
     private let maximumLocationAgeForTracking: TimeInterval = 10.0
 
-    override init() {
+    private override init() {
         self.authorizationStatus = locationManager.authorizationStatus
         super.init()
 

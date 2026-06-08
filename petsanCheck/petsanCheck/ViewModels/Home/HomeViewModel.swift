@@ -18,7 +18,7 @@ class HomeViewModel: ObservableObject {
     @Published var weatherError: String?
 
     private let weatherService = WeatherService.shared
-    private let locationManager = LocationManager()
+    private let locationManager = LocationManager.shared
     private let geocoder = CLGeocoder()
     private var cancellables = Set<AnyCancellable>()
 

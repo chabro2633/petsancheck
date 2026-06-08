@@ -47,7 +47,7 @@ class RankingViewModel: ObservableObject {
     private let coreDataService = CoreDataService.shared
     private let firebaseService = FirebaseService.shared
     private let kakaoService = KakaoService.shared
-    private let locationManager = LocationManager()
+    private let locationManager = LocationManager.shared
     private var cancellables = Set<AnyCancellable>()
 
     init() {

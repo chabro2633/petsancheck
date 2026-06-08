@@ -15,6 +15,8 @@ class ProfileViewModel: ObservableObject {
     @Published var selectedDog: Dog?
     @Published var isShowingAddDog = false
     @Published var isShowingEditDog = false
+    /// 저장/삭제 실패 시 사용자에게 보여줄 오류 메시지
+    @Published var errorMessage: String?
 
     private let coreDataService = CoreDataService.shared
 
@@ -32,22 +34,34 @@ class ProfileViewModel: ObservableObject {
 
     /// 반려견 추가
     func addDog(_ dog: Dog) {
-        coreDataService.createDog(dog)
-        loadDogs()
+        do {
+            try coreDataService.createDog(dog)
+            loadDogs()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// 반려견 업데이트
     func updateDog(_ dog: Dog) {
-        coreDataService.updateDog(dog)
-        loadDogs()
+        do {
+            try coreDataService.updateDog(dog)
+            loadDogs()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// 반려견 삭제
     func deleteDog(_ dog: Dog) {
-        coreDataService.deleteDog(dog)
-        if selectedDog?.id == dog.id {
-            selectedDog = nil
+        do {
+            try coreDataService.deleteDog(dog)
+            if selectedDog?.id == dog.id {
+                selectedDog = nil
+            }
+            loadDogs()
+        } catch {
+            errorMessage = error.localizedDescription
         }
-        loadDogs()
     }
 }

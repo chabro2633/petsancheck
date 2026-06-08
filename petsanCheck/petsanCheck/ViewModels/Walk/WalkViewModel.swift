@@ -25,6 +25,8 @@ class WalkViewModel: ObservableObject {
     @Published var showCompletionPopup = false
     @Published var completedWalkStats: WalkStats?
     @Published var completedDogName: String?
+    /// 산책 기록 저장 실패 시 사용자에게 보여줄 오류 메시지
+    @Published var errorMessage: String?
 
     // 백그라운드 권한 알럿 후 산책 시작을 위한 임시 저장
     private var pendingDog: Dog?
@@ -41,7 +43,7 @@ class WalkViewModel: ObservableObject {
     }
 
     private init() {
-        self.locationManager = LocationManager()
+        self.locationManager = LocationManager.shared
 
         // LocationManager의 변경사항 구독
         setupBindings()
@@ -161,7 +163,11 @@ class WalkViewModel: ObservableObject {
         stopTimer()
 
         // 세션을 CoreData에 저장
-        CoreDataService.shared.createWalkRecord(session, dogId: selectedDogId)
+        do {
+            try CoreDataService.shared.createWalkRecord(session, dogId: selectedDogId)
+        } catch {
+            errorMessage = "산책 기록을 저장하지 못했습니다: \(error.localizedDescription)"
+        }
 
         // Firebase에 누적 통계 업로드
         syncStatsToFirebase()

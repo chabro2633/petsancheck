@@ -14,6 +14,8 @@ class WalkHistoryViewModel: ObservableObject {
     @Published var walkRecords: [WalkSession] = []
     @Published var weeklyRecords: [WalkSession] = []
     @Published var selectedDogId: UUID?
+    /// 삭제 실패 시 사용자에게 보여줄 오류 메시지
+    @Published var errorMessage: String?
 
     /// 이번 주 시작일 (월요일)
     @Published var weekStartDate: Date = Date()
@@ -77,8 +79,12 @@ class WalkHistoryViewModel: ObservableObject {
 
     /// 산책 기록 삭제
     func deleteRecord(_ session: WalkSession) {
-        coreDataService.deleteWalkRecord(session.id)
-        loadWalkRecords()
+        do {
+            try coreDataService.deleteWalkRecord(session.id)
+            loadWalkRecords()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     // MARK: - 이번 주 통계

@@ -170,8 +170,12 @@ class FeedViewModel: ObservableObject {
             weight: 0,  // 나중에 수정 가능
             gender: .male  // 기본값
         )
-        coreDataService.createDog(newDog)
-        loadRegisteredDogs()
+        do {
+            try coreDataService.createDog(newDog)
+            loadRegisteredDogs()
+        } catch {
+            self.error = error.localizedDescription
+        }
         return newDog
     }
 

@@ -117,6 +117,9 @@ iOSInjectionProject/
 # API Keys (보안)
 **/APIKeys.swift
 
+# Firebase 설정 (보안)
+**/GoogleService-Info.plist
+
 # Testing
 *.gcno
 *.gcda
